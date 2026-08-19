@@ -1,32 +1,49 @@
-# React + TypeScript + Vite
+# Executive Release Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An interactive executive-level dashboard for tracking product releases, delivery effort (mandays), and feature usage metrics. Built with React, Vite, Tailwind CSS, and Chart.js.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Monthly Release Cadence:** View all product releases grouped horizontally by month.
+- **Filtering:** Quickly filter releases by **Year** and **Type** (Feature, Improvement, Bug Fix).
+- **Release Details:** Click on any release card to view in-depth details in a modal.
+  - **Implementation Timeline:** A Gantt-like timeline chart showing Requirement, Design, Development, and Test/UAT phases.
+  - **Effort Breakdown:** Detailed view of mandays (MD) spent per phase and owner.
+- **Usage Tracking:** Integrated with Sheety APIs to pull real-time usage reports for specific features (e.g., *Search by Brief*, *Draft Submissions*, *Buddy Ranks*, *Content Idea Co-pilot*, and *Campaign Reports*). Usage data is displayed as stacked bar charts (aggregatable by Day, Month, or Year) with an automatic release date marker.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework:** [React 19](https://react.dev/) with [Vite](https://vitejs.dev/)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Charting:** [Chart.js](https://www.chartjs.org/) & [react-chartjs-2](https://react-chartjs-2.js.org/)
+- **Date Parsing:** [date-fns](https://date-fns.org/)
+- **Icons:** [Lucide React](https://lucide.dev/)
 
-## Expanding the Oxlint configuration
+## Getting Started
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### Prerequisites
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+- Node.js (v18 or higher recommended)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository and install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Open your browser and navigate to the local URL provided by Vite (usually `http://localhost:5173`).
+
+### Build for Production
+
+To create a production build:
+```bash
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The optimized files will be generated in the `dist` folder.
