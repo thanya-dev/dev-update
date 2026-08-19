@@ -25,6 +25,9 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
     'AI pillar, Year Plan Report improvement'
   ].includes(release.name);
 
+  const images = release.gallery ? release.gallery.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const firstImage = images.length > 0 ? images[0] : null;
+
   const dateStr = release.releaseDate ? format(parseISO(release.releaseDate), 'dd MMM') : '';
 
   const getTypeColor = (type: string) => {
@@ -57,8 +60,12 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
         className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col group h-full"
       >
         {!isMinorBugFix && (
-          <div className="h-24 bg-gray-50 border-b border-gray-100 flex items-center justify-center group-hover:bg-gray-100 transition-colors">
-            {getIcon()}
+          <div className="w-full aspect-[4/3] bg-gray-50 border-b border-gray-100 flex items-center justify-center group-hover:bg-gray-100 transition-colors overflow-hidden">
+            {firstImage ? (
+              <img src={firstImage} alt={release.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            ) : (
+              getIcon()
+            )}
           </div>
         )}
 

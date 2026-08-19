@@ -33,7 +33,10 @@ interface Props {
 }
 
 export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'usage'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'usage' | 'gallery'>('details');
+  const images = release.gallery ? release.gallery.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const hasGallery = images.length > 0;
+  
   const hasUsage = [
     'Year Plan Report', 
     'Search by Brief', 
@@ -183,7 +186,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
         </div>
 
         {/* Tabs Navigation */}
-        {hasUsage && (
+        {(hasUsage || hasGallery) && (
           <div className="px-6 border-b border-gray-100 flex gap-6">
             <button
               onClick={() => setActiveTab('details')}
@@ -191,12 +194,22 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
             >
               Details
             </button>
-            <button
-              onClick={() => setActiveTab('usage')}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'usage' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              Usage
-            </button>
+            {hasGallery && (
+              <button
+                onClick={() => setActiveTab('gallery')}
+                className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'gallery' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                Gallery
+              </button>
+            )}
+            {hasUsage && (
+              <button
+                onClick={() => setActiveTab('usage')}
+                className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'usage' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                Usage
+              </button>
+            )}
           </div>
         )}
 
@@ -251,6 +264,16 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
                   <div className="text-sm text-purple-600 mt-1">Mandays</div>
                 </div>
               </div>
+            </div>
+          ) : activeTab === 'gallery' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max">
+              {images.map((img, idx) => (
+                <div key={idx} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 aspect-video flex items-center justify-center">
+                  <a href={img} target="_blank" rel="noopener noreferrer" className="w-full h-full block group">
+                    <img src={img} alt={`${release.name} screenshot ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                  </a>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="flex-1 w-full h-full min-h-[500px] pb-6">

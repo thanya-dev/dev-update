@@ -23,6 +23,7 @@ export interface ReleaseData {
   testUatStart: string;
   testUatEnd: string;
   testUatMd: number;
+  gallery?: string;
 }
 
 export interface GroupedReleases {
