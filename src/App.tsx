@@ -50,7 +50,7 @@ function App() {
         <div className="w-full px-16 lg:px-24 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FolderOutput className="w-6 h-6 text-primary-600" />
+              <img src="/logo.png" alt="Logo" className="h-12 w-auto object-contain" />
               Executive Release Dashboard
             </h1>
             <p className="text-sm text-gray-500 mt-1">Monthly release cadence and delivery effort.</p>
