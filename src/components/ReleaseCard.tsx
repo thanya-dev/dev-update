@@ -63,7 +63,7 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
         {!isMinorBugFix && (
           <div className="w-full aspect-[4/3] bg-gray-50 border-b border-gray-100 flex items-center justify-center group-hover:bg-gray-100 transition-colors overflow-hidden">
             {firstImage ? (
-              <img src={firstImage} alt={release.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <img src={firstImage} alt={release.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
             ) : (
               getIcon()
             )}

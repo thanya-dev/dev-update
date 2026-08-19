@@ -272,7 +272,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max">
               {images.map((img, idx) => (
                 <div key={idx} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 aspect-video flex items-center justify-center cursor-pointer group" onClick={() => setSelectedImageIdx(idx)}>
-                  <img src={img} alt={`${release.name} screenshot ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                  <img src={img} alt={`${release.name} screenshot ${idx + 1}`} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 </div>
               ))}
             </div>
