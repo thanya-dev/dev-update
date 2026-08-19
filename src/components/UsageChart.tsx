@@ -360,11 +360,8 @@ const MetabaseEmbed = ({ dashboardId }: { dashboardId: number }) => {
         <h3 className="text-lg font-semibold text-gray-900">Usage Report (Metabase)</h3>
       </div>
       <div className="flex-1 w-full rounded-xl overflow-hidden min-h-[500px]">
-        <metabase-dashboard
-          token={token}
-          with-title="true"
-          with-downloads="true"
-        ></metabase-dashboard>
+        {/* @ts-ignore */}
+        <metabase-dashboard token={token} with-title="true" with-downloads="true"></metabase-dashboard>
       </div>
     </div>
   );
