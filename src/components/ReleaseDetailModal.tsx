@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, Clock, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, User, Clock, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReleaseData } from '../types';
 import { formatMD } from '../utils';
 import { format, parseISO } from 'date-fns';
@@ -33,9 +33,11 @@ interface Props {
 }
 
 export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'usage' | 'gallery'>('details');
   const images = release.gallery ? release.gallery.split(',').map(s => s.trim()).filter(Boolean) : [];
   const hasGallery = images.length > 0;
+  const [activeTab, setActiveTab] = useState<'details' | 'usage' | 'gallery'>(hasGallery ? 'gallery' : 'details');
+  const [selectedImageIdx, setSelectedImageIdx] = useState<number | null>(null);
+  
   
   const hasUsage = [
     'Year Plan Report', 
@@ -188,12 +190,6 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
         {/* Tabs Navigation */}
         {(hasUsage || hasGallery) && (
           <div className="px-6 border-b border-gray-100 flex gap-6">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'details' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              Details
-            </button>
             {hasGallery && (
               <button
                 onClick={() => setActiveTab('gallery')}
@@ -202,6 +198,12 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
                 Gallery
               </button>
             )}
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'details' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              Details
+            </button>
             {hasUsage && (
               <button
                 onClick={() => setActiveTab('usage')}
@@ -268,10 +270,8 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
           ) : activeTab === 'gallery' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max">
               {images.map((img, idx) => (
-                <div key={idx} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 aspect-video flex items-center justify-center">
-                  <a href={img} target="_blank" rel="noopener noreferrer" className="w-full h-full block group">
-                    <img src={img} alt={`${release.name} screenshot ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  </a>
+                <div key={idx} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 aspect-video flex items-center justify-center cursor-pointer group" onClick={() => setSelectedImageIdx(idx)}>
+                  <img src={img} alt={`${release.name} screenshot ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 </div>
               ))}
             </div>
@@ -282,6 +282,55 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Lightbox Slider */}
+      {selectedImageIdx !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4">
+          <button
+            onClick={() => setSelectedImageIdx(null)}
+            className="absolute top-6 right-6 p-2 text-white/70 hover:text-white transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          
+          <div className="relative w-full max-w-6xl flex items-center justify-center">
+            {images.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIdx((prev) => (prev! === 0 ? images.length - 1 : prev! - 1));
+                }}
+                className="absolute left-0 lg:-left-16 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
+              >
+                <ChevronLeft className="w-10 h-10" />
+              </button>
+            )}
+            
+            <img 
+              src={images[selectedImageIdx]} 
+              alt="Preview full screen" 
+              className="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {images.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIdx((prev) => (prev! === images.length - 1 ? 0 : prev! + 1));
+                }}
+                className="absolute right-0 lg:-right-16 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
+              >
+                <ChevronRight className="w-10 h-10" />
+              </button>
+            )}
+          </div>
+          
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-black/50 px-4 py-2 rounded-full">
+            {selectedImageIdx + 1} / {images.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
