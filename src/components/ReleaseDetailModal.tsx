@@ -34,7 +34,16 @@ interface Props {
 
 export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'usage'>('details');
-  const isYearPlanReport = release.name === 'Year Plan Report';
+  const hasUsage = [
+    'Year Plan Report', 
+    'Search by Brief', 
+    'Centralize Draft Submission', 
+    'Draft improvement', 
+    'Draft Improvement #2',
+    'Buddy Rank Content Idea Co-pilot',
+    'Buddy Ranks',
+    'Expense Report Bug, Evidence for Lotus Report'
+  ].includes(release.name);
 
   // Chart Data preparation
   const phases = [
@@ -43,6 +52,9 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
     { label: 'Development', start: release.devStart, end: release.devEnd, owner: release.devOwner, md: release.devMd },
     { label: 'Test/UAT', start: release.testUatStart, end: release.testUatEnd, owner: release.testUatOwner, md: release.testUatMd },
   ].filter(p => p.start && p.end && p.md > 0);
+
+  const minDate = phases.length > 0 ? Math.min(...phases.map(p => parseISO(p.start).getTime())) - (7 * 24 * 60 * 60 * 1000) : undefined;
+  const maxDate = phases.length > 0 ? Math.max(...phases.map(p => parseISO(p.end).getTime())) + (7 * 24 * 60 * 60 * 1000) : undefined;
 
   const data = {
     labels: phases.map(p => p.label),
@@ -83,9 +95,8 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
     scales: {
       x: {
         type: 'time' as const,
-        time: {
-          unit: 'day' as const,
-        },
+        min: minDate,
+        max: maxDate,
         grid: {
           color: '#f3f4f6',
         }
@@ -99,7 +110,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-[1600px] h-[95vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in duration-200">
-        
+
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div>
@@ -118,7 +129,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
               </p>
             )}
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-colors"
           >
@@ -127,7 +138,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
         </div>
 
         {/* Tabs Navigation */}
-        {isYearPlanReport && (
+        {hasUsage && (
           <div className="px-6 border-b border-gray-100 flex gap-6">
             <button
               onClick={() => setActiveTab('details')}
@@ -149,58 +160,58 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
           {activeTab === 'details' ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main timeline column */}
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Implementation Timeline</h3>
-              <div className="h-64 w-full">
-                {phases.length > 0 ? (
-                  <Bar data={data} options={options} />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">
-                    No detailed timeline dates available.
+              <div className="md:col-span-2 space-y-6">
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Implementation Timeline</h3>
+                  <div className="h-64 w-full">
+                    {phases.length > 0 ? (
+                      <Bar data={data} options={options} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-gray-400">
+                        No detailed timeline dates available.
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Phase Breakdown</h3>
+                  <div className="space-y-4">
+                    {phases.map((phase, idx) => (
+                      <div key={idx} className="flex justify-between items-center pb-4 border-b border-gray-200 last:border-0 last:pb-0">
+                        <div>
+                          <div className="font-medium text-gray-900">{phase.label}</div>
+                          <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <User className="w-3 h-3" /> {phase.owner || 'Unassigned'}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-gray-900">{formatMD(phase.md)} MD</div>
+                          <div className="text-sm text-gray-500 flex items-center gap-1 justify-end mt-1">
+                            <Clock className="w-3 h-3" />
+                            {format(parseISO(phase.start), 'MMM d')} - {format(parseISO(phase.end), 'MMM d')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-6">
+                <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
+                  <h3 className="text-sm font-semibold text-purple-900 uppercase tracking-wider mb-2">Total Effort</h3>
+                  <div className="text-4xl font-bold text-purple-700">{formatMD(release.totalMd)}</div>
+                  <div className="text-sm text-purple-600 mt-1">Mandays</div>
+                </div>
               </div>
             </div>
-
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Phase Breakdown</h3>
-              <div className="space-y-4">
-                {phases.map((phase, idx) => (
-                  <div key={idx} className="flex justify-between items-center pb-4 border-b border-gray-200 last:border-0 last:pb-0">
-                    <div>
-                      <div className="font-medium text-gray-900">{phase.label}</div>
-                      <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                        <User className="w-3 h-3" /> {phase.owner || 'Unassigned'}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium text-gray-900">{formatMD(phase.md)} MD</div>
-                      <div className="text-sm text-gray-500 flex items-center gap-1 justify-end mt-1">
-                        <Clock className="w-3 h-3" /> 
-                        {format(parseISO(phase.start), 'MMM d')} - {format(parseISO(phase.end), 'MMM d')}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          ) : (
+            <div className="flex-1 w-full h-full min-h-[500px] pb-6">
+              <UsageChart releaseName={release.name} />
             </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
-              <h3 className="text-sm font-semibold text-purple-900 uppercase tracking-wider mb-2">Total Effort</h3>
-              <div className="text-4xl font-bold text-purple-700">{formatMD(release.totalMd)}</div>
-              <div className="text-sm text-purple-600 mt-1">Mandays</div>
-            </div>
-          </div>
-        </div>
-        ) : (
-          <div className="flex-1 w-full h-full min-h-[500px] pb-6">
-             <UsageChart />
-          </div>
-        )}
+          )}
         </div>
       </div>
     </div>

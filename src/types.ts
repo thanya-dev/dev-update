@@ -38,3 +38,15 @@ export interface ProjectReport {
   mode: string;
   countaOfProject: number;
 }
+
+export interface SearchByBriefReport {
+  date: string;
+  email: string;
+  countaOfEmail: number;
+}
+
+export interface ContentIdeaCoPilotReport {
+  date: string;
+  event: string;
+  countaOfEvent: number;
+}

@@ -12,11 +12,21 @@ interface Props {
 export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
   const isBugFix = release.type === 'Bug Fix';
   const isMinorBugFix = isBugFix && release.totalMd <= 2.0;
-  
+  const hasUsage = [
+    'Year Plan Report', 
+    'Search by Brief', 
+    'Centralize Draft Submission', 
+    'Draft improvement', 
+    'Draft Improvement #2',
+    'Buddy Rank Content Idea Co-pilot',
+    'Buddy Ranks',
+    'Expense Report Bug, Evidence for Lotus Report'
+  ].includes(release.name);
+
   const dateStr = release.releaseDate ? format(parseISO(release.releaseDate), 'dd MMM') : '';
 
   const getTypeColor = (type: string) => {
-    switch(type) {
+    switch (type) {
       case 'Feature': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'Improvement': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'Bug Fix': return 'bg-red-100 text-red-800 border-red-200';
@@ -25,7 +35,7 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
   };
 
   const getIcon = () => {
-    switch(release.type) {
+    switch (release.type) {
       case 'Feature': return <Sparkles className="w-8 h-8 text-blue-500" />;
       case 'Improvement': return <Wrench className="w-8 h-8 text-purple-500" />;
       case 'Bug Fix': return <Bug className="w-8 h-8 text-red-500" />;
@@ -40,7 +50,7 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
         <CheckCircle2 className="w-4 h-4 text-green-500" />
       </div>
 
-      <div 
+      <div
         onClick={() => onClick(release)}
         className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col group h-full"
       >
@@ -49,19 +59,24 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
             {getIcon()}
           </div>
         )}
-        
+
         <div className="p-4 flex-1 flex flex-col">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="text-xs font-medium text-gray-500">{dateStr}</span>
             <span className={`text-xs px-2 py-0.5 rounded-full border ${getTypeColor(release.type)}`}>
               {release.type}
             </span>
+            {hasUsage && (
+              <span className="text-xs px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center gap-1">
+                <BarChart2 className="w-3 h-3" /> Usage
+              </span>
+            )}
           </div>
-          
+
           <h4 className="font-semibold text-gray-900 leading-tight mb-3 line-clamp-2" title={release.name}>
             {release.name}
           </h4>
-          
+
           <div className="mt-auto pt-3 border-t border-gray-50 flex justify-between items-center text-sm">
             <span className="text-gray-500">Effort</span>
             <span className="font-medium text-gray-900">{formatMD(release.totalMd)} MD</span>

@@ -15,18 +15,43 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 type AggregationLevel = 'Day' | 'Month' | 'Year';
 
-export const UsageChart: React.FC = () => {
-  const [data, setData] = useState<ProjectReport[]>([]);
+interface UsageChartProps {
+  releaseName?: string;
+}
+
+export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [aggregation, setAggregation] = useState<AggregationLevel>('Month');
 
   useEffect(() => {
-    const url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/projectReport';
+    let url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/projectReport';
+    let dataKey = 'projectReport';
+
+    if (releaseName === 'Search by Brief') {
+      url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/searchByBrief';
+      dataKey = 'searchByBrief';
+    } else if (['Centralize Draft Submission', 'Draft improvement', 'Draft Improvement #2'].includes(releaseName || '')) {
+      url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/draftSubmitted';
+      dataKey = 'draftSubmitted';
+    } else if (releaseName === 'Buddy Rank Content Idea Co-pilot') {
+      url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/contentIdeaCoPilot';
+      dataKey = 'contentIdeaCoPilot';
+    } else if (releaseName === 'Buddy Ranks') {
+      url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/buddyRankAudience';
+      dataKey = 'buddyRankAudience';
+    } else if (releaseName === 'Expense Report Bug, Evidence for Lotus Report') {
+      url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/campaignReport';
+      dataKey = 'campaignReport';
+    }
+
+    setLoading(true);
     fetch(url)
       .then((res) => res.json())
       .then((json) => {
-        if (json.projectReport) {
-          setData(json.projectReport);
+        const dataArray = json[dataKey] || json[dataKey + 's'] || json[dataKey.replace(/s$/, '')];
+        if (dataArray) {
+          setData(dataArray);
         }
         setLoading(false);
       })
@@ -34,20 +59,40 @@ export const UsageChart: React.FC = () => {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  }, [releaseName]);
 
   const { chartData, modeTotals } = useMemo(() => {
-    // 1. Group data by aggregation level and mode
+    // 1. Group data by aggregation level and mode/email
     const grouped: Record<string, Record<string, number>> = {};
     const modeTotalsRecord: Record<string, number> = {};
     const modes = new Set<string>();
 
+    const isSearchByBrief = releaseName === 'Search by Brief';
+    const isDraftSubmitted = ['Centralize Draft Submission', 'Draft improvement', 'Draft Improvement #2'].includes(releaseName || '');
+    const isEventBased = releaseName === 'Buddy Rank Content Idea Co-pilot' || releaseName === 'Buddy Ranks';
+    const isCampaignReport = releaseName === 'Expense Report Bug, Evidence for Lotus Report';
+
     data.forEach((item) => {
-      // Date format is DD/MM/YYYY
+      // Date parsing based on format
       if (!item.date) return;
-      const [dayStr, monthStr, yearStr] = item.date.split('/');
-      let key = item.date; // default Day
       
+      let dayStr, monthStr, yearStr;
+      const parts = item.date.split('/');
+      
+      // draftSubmitted date is M/D/YYYY (e.g. 5/20/2026)
+      if (isDraftSubmitted) {
+        monthStr = parts[0];
+        dayStr = parts[1];
+        yearStr = parts[2];
+      } else {
+        // projectReport and searchByBrief are DD/MM/YYYY
+        dayStr = parts[0];
+        monthStr = parts[1];
+        yearStr = parts[2];
+      }
+
+      let key = item.date; // default Day
+
       if (aggregation === 'Month') {
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const m = parseInt(monthStr, 10);
@@ -59,14 +104,28 @@ export const UsageChart: React.FC = () => {
       if (!grouped[key]) {
         grouped[key] = {};
       }
-      
-      const mode = item.mode || 'unknown';
+
+      let mode = 'unknown';
+      let count = 0;
+
+      if (isEventBased) {
+        mode = item.event || 'unknown';
+        count = item.countaOfEvent || 0;
+      } else if (isCampaignReport) {
+        mode = item.mode || 'unknown';
+        count = item.countaOfEmail || 0;
+      } else if (isSearchByBrief || isDraftSubmitted) {
+        mode = item.email || 'unknown';
+        count = item.countaOfEmail || 0;
+      } else {
+        mode = item.mode || 'unknown';
+        count = item.countaOfProject || 0;
+      }
+
       modes.add(mode);
-      
-      // Handle the field name from Sheety (might be countaOfProject or similar)
-      const count = item.countaOfProject || 0;
+
       grouped[key][mode] = (grouped[key][mode] || 0) + count;
-      
+
       // Calculate overall totals
       modeTotalsRecord[mode] = (modeTotalsRecord[mode] || 0) + count;
     });
@@ -79,13 +138,13 @@ export const UsageChart: React.FC = () => {
         const [d2, m2, y2] = b.split('/');
         return new Date(`${y1}-${m1}-${d1}`).getTime() - new Date(`${y2}-${m2}-${d2}`).getTime();
       } else if (aggregation === 'Month') {
-         return new Date(a).getTime() - new Date(b).getTime();
+        return new Date(a).getTime() - new Date(b).getTime();
       }
       return a.localeCompare(b);
     });
 
     const ArrayOfModes = Array.from(modes);
-    
+
     // Color palette for modes
     const colors = [
       'rgba(59, 130, 246, 0.8)',  // blue
@@ -111,7 +170,7 @@ export const UsageChart: React.FC = () => {
       },
       modeTotals: modeTotalsRecord,
     };
-  }, [data, aggregation]);
+  }, [data, aggregation, releaseName]);
 
   const options = {
     responsive: true,
