@@ -107,7 +107,7 @@ function App() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-x-auto overflow-y-auto snap-x snap-mandatory hide-scrollbar">
+          <div className="flex-1 overflow-x-auto overflow-y-auto snap-x snap-mandatory hide-scrollbar scroll-pl-8">
             <div className="flex gap-8 h-full min-h-[600px] w-max px-16 lg:px-24 py-8">
               {groupedData.map((group) => (
                 <div key={group.monthKey} className="w-[340px] flex-shrink-0 snap-start flex flex-col">
