@@ -51,7 +51,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       {/* Header */}
-      <header className="bg-[#01082F] border-b border-[#01082F] sticky top-0 z-30 shadow-sm">
+      <header className="bg-[#01082F] sticky top-0 z-30 shadow-md">
         <div className="w-full px-16 lg:px-24 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-3">
