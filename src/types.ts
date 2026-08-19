@@ -30,6 +30,7 @@ export interface GroupedReleases {
   monthKey: string;
   monthLabel: string;
   year: number;
+  isPlan?: boolean;
   releases: ReleaseData[];
 }
 

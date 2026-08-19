@@ -36,8 +36,13 @@ function App() {
   const filteredData = data.filter(r => {
     if (selectedYear !== 'All' && r.releaseDate && !r.releaseDate.startsWith(selectedYear)) return false;
     if (selectedType !== 'All' && r.type !== selectedType) return false;
-    // Only show Released items based on user story or all if status not considered? Spec says "all completed product releases", so we filter by Released.
-    if (r.status !== 'Released') return false;
+    const nowMonth = new Date().toISOString().substring(0, 7);
+    const itemMonth = r.releaseDate ? r.releaseDate.substring(0, 7) : '';
+    
+    // Only filter by 'Released' status if it's a past or current month.
+    // For future months (Plan), show them regardless of status.
+    if (itemMonth <= nowMonth && r.status !== 'Released') return false;
+    
     return true;
   });
 
@@ -46,14 +51,14 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="w-full px-16 lg:px-24 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="bg-[#01082F] border-b border-[#01082F] sticky top-0 z-30 shadow-sm">
+        <div className="w-full px-16 lg:px-24 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <img src="/logo.png" alt="Logo" className="h-12 w-auto object-contain" />
+            <h1 className="text-xl font-bold text-white flex items-center gap-3">
+              <img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain" />
               Executive Release Dashboard
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Monthly release cadence and delivery effort.</p>
+            <p className="text-xs text-gray-300 mt-0.5">Monthly release cadence and delivery effort.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -62,7 +67,7 @@ function App() {
                 <Calendar className="h-4 w-4 text-gray-400" />
               </div>
               <select
-                className="pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
+                className="pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
@@ -75,7 +80,7 @@ function App() {
                 <Filter className="h-4 w-4 text-gray-400" />
               </div>
               <select
-                className="pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
+                className="pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
               >
@@ -108,34 +113,49 @@ function App() {
           </div>
         ) : (
           <div className="flex-1 overflow-x-auto overflow-y-auto snap-x snap-mandatory hide-scrollbar scroll-pl-8">
-            <div className="flex gap-8 min-h-full w-max px-16 lg:px-24 py-8">
-              {groupedData.map((group) => (
-                <div key={group.monthKey} className="w-[340px] flex-shrink-0 snap-start flex flex-col">
-                  {/* Month Header */}
-                  <div className="mb-6 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-20 pb-4 border-b border-gray-200">
-                    <h2 className="text-xl font-bold text-gray-900">{group.monthLabel}</h2>
+            <div className="w-max min-h-full px-16 lg:px-24 pb-8">
+              
+              {/* Sticky Header Row */}
+              <div className="sticky top-0 z-20 flex gap-8 pt-8 pb-4 mb-6 bg-gray-50/95 backdrop-blur-md border-b border-gray-200">
+                {groupedData.map((group) => (
+                  <div key={group.monthKey} className="w-[340px] flex-shrink-0 snap-start">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-bold text-gray-900">{group.monthLabel}</h2>
+                      {group.isPlan && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
+                          Plan
+                        </span>
+                      )}
+                    </div>
                     <span className="inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100 text-primary-800">
                       {group.releases.length} Release{group.releases.length !== 1 ? 's' : ''}
                     </span>
                   </div>
+                ))}
+              </div>
 
-                  {/* Timeline Column */}
-                  <div className="relative flex-1">
-                    {/* Vertical Connector Line */}
-                    <div className="absolute left-[-1px] top-0 bottom-0 w-0.5 bg-gray-200"></div>
+              {/* Cards Row */}
+              <div className="flex gap-8">
+                {groupedData.map((group) => (
+                  <div key={group.monthKey} className="w-[340px] flex-shrink-0">
+                    <div className="relative h-full">
+                      {/* Vertical Connector Line */}
+                      <div className="absolute left-[-1px] top-0 bottom-0 w-0.5 bg-gray-200"></div>
 
-                    <div className="space-y-6">
-                      {group.releases.map((release) => (
-                        <ReleaseCard
-                          key={release.id}
-                          release={release}
-                          onClick={setSelectedRelease}
-                        />
-                      ))}
+                      <div className="space-y-6">
+                        {group.releases.map((release) => (
+                          <ReleaseCard
+                            key={release.id}
+                            release={release}
+                            onClick={setSelectedRelease}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
             </div>
           </div>
         )}

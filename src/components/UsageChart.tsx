@@ -25,7 +25,7 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate
     return <MetabaseEmbed dashboardId={331} />;
   }
   if (releaseName === 'Schedule update post data') {
-    return <MetabaseEmbed dashboardId={562} />;
+    return <MetabaseEmbed dashboardId={102} />;
   }
 
   const [data, setData] = useState<any[]>([]);

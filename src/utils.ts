@@ -11,11 +11,15 @@ export function groupReleasesByMonth(releases: ReleaseData[]): GroupedReleases[]
     const monthLabel = format(date, 'MMMM yyyy');
     const year = date.getFullYear();
 
+    const nowMonth = format(new Date(), 'yyyy-MM');
+    const isPlan = monthKey > nowMonth;
+
     if (!groups[monthKey]) {
       groups[monthKey] = {
         monthKey,
         monthLabel,
         year,
+        isPlan,
         releases: []
       };
     }
