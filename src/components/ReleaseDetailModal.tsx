@@ -49,7 +49,8 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
     'Buddy Ranks',
     'Expense Report Bug, Evidence for Lotus Report',
     'Convert Manual post / Manual account',
-    'AI pillar, Year Plan Report improvement'
+    'AI pillar, Year Plan Report improvement',
+    'Schedule update post data'
   ].includes(release.name);
 
   // Chart Data preparation

@@ -22,7 +22,8 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
     'Buddy Ranks',
     'Expense Report Bug, Evidence for Lotus Report',
     'Convert Manual post / Manual account',
-    'AI pillar, Year Plan Report improvement'
+    'AI pillar, Year Plan Report improvement',
+    'Schedule update post data'
   ].includes(release.name);
 
   const images = release.gallery ? release.gallery.split(',').map(s => s.trim()).filter(Boolean) : [];

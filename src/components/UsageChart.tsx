@@ -22,7 +22,10 @@ interface UsageChartProps {
 
 export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate }) => {
   if (releaseName === 'Convert Manual post / Manual account') {
-    return <MetabaseEmbed />;
+    return <MetabaseEmbed dashboardId={331} />;
+  }
+  if (releaseName === 'Schedule update post data') {
+    return <MetabaseEmbed dashboardId={562} />;
   }
 
   const [data, setData] = useState<any[]>([]);
@@ -321,7 +324,7 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate
   );
 };
 
-const MetabaseEmbed = () => {
+const MetabaseEmbed = ({ dashboardId }: { dashboardId: number }) => {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -329,7 +332,7 @@ const MetabaseEmbed = () => {
       try {
         const METABASE_SECRET_KEY = "06b25c18f312367f7ec027542d06aacf3a7f2d588ad44944679011b2b24a8f83";
         const secret = new TextEncoder().encode(METABASE_SECRET_KEY);
-        const jwt = await new SignJWT({ resource: { dashboard: 331 }, params: {} })
+        const jwt = await new SignJWT({ resource: { dashboard: dashboardId }, params: {} })
           .setProtectedHeader({ alg: 'HS256' })
           .setIssuedAt()
           .setExpirationTime('10m') // 10 minute expiration
