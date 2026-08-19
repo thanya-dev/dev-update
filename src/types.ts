@@ -50,3 +50,15 @@ export interface ContentIdeaCoPilotReport {
   event: string;
   countaOfEvent: number;
 }
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'metabase-dashboard': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        token: string;
+        'with-title'?: string;
+        'with-downloads'?: string;
+      };
+    }
+  }
+}

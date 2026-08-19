@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { SignJWT } from 'jose';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,6 +21,10 @@ interface UsageChartProps {
 }
 
 export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate }) => {
+  if (releaseName === 'Convert Manual post / Manual account') {
+    return <MetabaseEmbed />;
+  }
+
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [aggregation, setAggregation] = useState<AggregationLevel>('Month');
@@ -311,6 +316,52 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate
         ) : (
           <Bar data={chartData} options={options} plugins={plugins} />
         )}
+      </div>
+    </div>
+  );
+};
+
+const MetabaseEmbed = () => {
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const generateToken = async () => {
+      try {
+        const METABASE_SECRET_KEY = "06b25c18f312367f7ec027542d06aacf3a7f2d588ad44944679011b2b24a8f83";
+        const secret = new TextEncoder().encode(METABASE_SECRET_KEY);
+        const jwt = await new SignJWT({ resource: { dashboard: 331 }, params: {} })
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('10m') // 10 minute expiration
+          .sign(secret);
+        setToken(jwt);
+      } catch (err) {
+        console.error('Failed to generate Metabase token', err);
+      }
+    };
+    generateToken();
+  }, []);
+
+  if (!token) {
+    return (
+      <div className="flex flex-col h-full bg-white rounded-xl border border-gray-100 shadow-sm p-6 items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-2"></div>
+        <div className="text-gray-500">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">Usage Report (Metabase)</h3>
+      </div>
+      <div className="flex-1 w-full rounded-xl overflow-hidden min-h-[500px]">
+        <metabase-dashboard
+          token={token}
+          with-title="true"
+          with-downloads="true"
+        ></metabase-dashboard>
       </div>
     </div>
   );

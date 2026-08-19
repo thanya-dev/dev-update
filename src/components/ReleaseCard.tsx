@@ -20,7 +20,9 @@ export const ReleaseCard: React.FC<Props> = ({ release, onClick }) => {
     'Draft Improvement #2',
     'Buddy Rank Content Idea Co-pilot',
     'Buddy Ranks',
-    'Expense Report Bug, Evidence for Lotus Report'
+    'Expense Report Bug, Evidence for Lotus Report',
+    'Convert Manual post / Manual account',
+    'AI pillar, Year Plan Report improvement'
   ].includes(release.name);
 
   const dateStr = release.releaseDate ? format(parseISO(release.releaseDate), 'dd MMM') : '';
