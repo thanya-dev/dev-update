@@ -39,9 +39,9 @@ function App() {
     const nowMonth = new Date().toISOString().substring(0, 7);
     const itemMonth = r.releaseDate ? r.releaseDate.substring(0, 7) : '';
     
-    // Only filter by 'Released' status if it's a past or current month.
-    // For future months (Plan), show them regardless of status.
-    if (itemMonth <= nowMonth && r.status !== 'Released') return false;
+    // Only filter by 'Released' status if it's a past month.
+    // For current and future months, show them regardless of status.
+    if (itemMonth < nowMonth && r.status !== 'Released') return false;
     
     return true;
   });
