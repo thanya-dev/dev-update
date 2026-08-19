@@ -53,8 +53,10 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
     { label: 'Test/UAT', start: release.testUatStart, end: release.testUatEnd, owner: release.testUatOwner, md: release.testUatMd },
   ].filter(p => p.start && p.end && p.md > 0);
 
+  const maxPhaseTime = phases.length > 0 ? Math.max(...phases.map(p => parseISO(p.end).getTime())) : 0;
+  const releaseTime = release.releaseDate ? parseISO(release.releaseDate).getTime() : 0;
   const minDate = phases.length > 0 ? Math.min(...phases.map(p => parseISO(p.start).getTime())) - (7 * 24 * 60 * 60 * 1000) : undefined;
-  const maxDate = phases.length > 0 ? Math.max(...phases.map(p => parseISO(p.end).getTime())) + (7 * 24 * 60 * 60 * 1000) : undefined;
+  const maxDate = phases.length > 0 ? Math.max(maxPhaseTime, releaseTime) + (7 * 24 * 60 * 60 * 1000) : undefined;
 
   const data = {
     labels: phases.map(p => p.label),
@@ -79,6 +81,11 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
     indexAxis: 'y' as const,
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 20
+      }
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -106,6 +113,42 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
       }
     },
   };
+
+  const timelinePlugins = React.useMemo(() => {
+    return [
+      {
+        id: 'releaseTimelineLine',
+        afterDraw: (chart: any) => {
+          if (!release.releaseDate) return;
+          const rTime = parseISO(release.releaseDate).getTime();
+          const xAxis = chart.scales.x;
+          
+          if (rTime >= xAxis.min && rTime <= xAxis.max) {
+            const xPixel = xAxis.getPixelForValue(rTime);
+            const yAxis = chart.scales.y;
+            const ctx = chart.ctx;
+            
+            ctx.save();
+            ctx.fillStyle = '#6b7280'; // gray-500
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Release', xPixel, yAxis.top - 6);
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(xPixel, yAxis.top);
+            ctx.lineTo(xPixel, yAxis.bottom);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#9ca3af'; // gray-400
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+    ];
+  }, [release.releaseDate]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
@@ -165,7 +208,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Implementation Timeline</h3>
                   <div className="h-64 w-full">
                     {phases.length > 0 ? (
-                      <Bar data={data} options={options} />
+                      <Bar data={data} options={options} plugins={timelinePlugins} />
                     ) : (
                       <div className="h-full flex items-center justify-center text-gray-400">
                         No detailed timeline dates available.
