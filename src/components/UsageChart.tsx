@@ -9,7 +9,6 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import type { ProjectReport } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -102,12 +101,11 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate
       // Date parsing based on format
       if (!item.date) return;
       
-      let dayStr = '1', monthStr = '1', yearStr = '2026';
+      let monthStr = '1', yearStr = '2026';
       
       if (item.date.includes('T') || item.date.match(/^\d{4}-\d{2}-\d{2}/)) {
         const d = new Date(item.date);
         if (!isNaN(d.getTime())) {
-          dayStr = String(d.getDate());
           monthStr = String(d.getMonth() + 1);
           yearStr = String(d.getFullYear());
         }
@@ -117,15 +115,12 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate
           if (parts[0].length === 4) {
             yearStr = parts[0];
             monthStr = parts[1];
-            dayStr = parts[2].substring(0, 2);
           } else if (isDraftSubmitted) {
             // M/D/YYYY
             monthStr = parts[0];
-            dayStr = parts[1];
             yearStr = parts[2].substring(0, 4);
           } else {
             // DD/MM/YYYY
-            dayStr = parts[0];
             monthStr = parts[1];
             yearStr = parts[2].substring(0, 4);
           }
