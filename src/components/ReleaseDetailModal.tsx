@@ -38,6 +38,14 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'usage' | 'gallery'>(hasGallery ? 'gallery' : 'details');
   const [selectedImageIdx, setSelectedImageIdx] = useState<number | null>(null);
   
+  React.useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+  
   
   const hasUsage = [
     'Year Plan Report', 
@@ -159,8 +167,14 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
   }, [release.releaseDate]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-[1600px] h-[95vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm" 
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-[1600px] h-[95vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
@@ -294,14 +308,14 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
             <X className="w-8 h-8" />
           </button>
           
-          <div className="relative w-full max-w-6xl flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center py-12 px-12 md:px-24">
             {images.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedImageIdx((prev) => (prev! === 0 ? images.length - 1 : prev! - 1));
                 }}
-                className="absolute left-0 lg:-left-16 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                className="absolute left-2 md:left-6 z-10 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
               >
                 <ChevronLeft className="w-10 h-10" />
               </button>
@@ -310,7 +324,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
             <img 
               src={images[selectedImageIdx]} 
               alt="Preview full screen" 
-              className="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl"
+              className="w-full h-full object-contain rounded-md drop-shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
 
@@ -320,7 +334,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
                   e.stopPropagation();
                   setSelectedImageIdx((prev) => (prev! === images.length - 1 ? 0 : prev! + 1));
                 }}
-                className="absolute right-0 lg:-right-16 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                className="absolute right-2 md:right-6 z-10 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
               >
                 <ChevronRight className="w-10 h-10" />
               </button>
