@@ -17,9 +17,10 @@ type AggregationLevel = 'Day' | 'Month' | 'Year';
 
 interface UsageChartProps {
   releaseName?: string;
+  releaseDate?: string;
 }
 
-export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
+export const UsageChart: React.FC<UsageChartProps> = ({ releaseName, releaseDate }) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [aggregation, setAggregation] = useState<AggregationLevel>('Month');
@@ -61,7 +62,7 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
       });
   }, [releaseName]);
 
-  const { chartData, modeTotals } = useMemo(() => {
+  const { chartData, modeTotals, targetLabel } = useMemo(() => {
     // 1. Group data by aggregation level and mode/email
     const grouped: Record<string, Record<string, number>> = {};
     const modeTotalsRecord: Record<string, number> = {};
@@ -72,23 +73,63 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
     const isEventBased = releaseName === 'Buddy Rank Content Idea Co-pilot' || releaseName === 'Buddy Ranks';
     const isCampaignReport = releaseName === 'Expense Report Bug, Evidence for Lotus Report';
 
+    let computedTargetLabel: string | null = null;
+    if (releaseDate) {
+      const rd = new Date(releaseDate);
+      if (!isNaN(rd.getTime())) {
+        if (aggregation === 'Day') {
+          if (isDraftSubmitted) {
+            computedTargetLabel = `${rd.getMonth() + 1}/${rd.getDate()}/${rd.getFullYear()}`;
+          } else {
+            const dd = String(rd.getDate()).padStart(2, '0');
+            const mm = String(rd.getMonth() + 1).padStart(2, '0');
+            computedTargetLabel = `${dd}/${mm}/${rd.getFullYear()}`;
+          }
+        } else if (aggregation === 'Month') {
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          computedTargetLabel = `${monthNames[rd.getMonth()]} ${rd.getFullYear()}`;
+        } else if (aggregation === 'Year') {
+          computedTargetLabel = `${rd.getFullYear()}`;
+        }
+      }
+    }
+
+    if (computedTargetLabel && !grouped[computedTargetLabel]) {
+      grouped[computedTargetLabel] = {};
+    }
+
     data.forEach((item) => {
       // Date parsing based on format
       if (!item.date) return;
       
-      let dayStr, monthStr, yearStr;
-      const parts = item.date.split('/');
+      let dayStr = '1', monthStr = '1', yearStr = '2026';
       
-      // draftSubmitted date is M/D/YYYY (e.g. 5/20/2026)
-      if (isDraftSubmitted) {
-        monthStr = parts[0];
-        dayStr = parts[1];
-        yearStr = parts[2];
+      if (item.date.includes('T') || item.date.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const d = new Date(item.date);
+        if (!isNaN(d.getTime())) {
+          dayStr = String(d.getDate());
+          monthStr = String(d.getMonth() + 1);
+          yearStr = String(d.getFullYear());
+        }
       } else {
-        // projectReport and searchByBrief are DD/MM/YYYY
-        dayStr = parts[0];
-        monthStr = parts[1];
-        yearStr = parts[2];
+        const parts = item.date.split(/[\/\-]/);
+        if (parts.length >= 3) {
+          if (parts[0].length === 4) {
+            yearStr = parts[0];
+            monthStr = parts[1];
+            dayStr = parts[2].substring(0, 2);
+          } else if (isDraftSubmitted) {
+            // M/D/YYYY
+            monthStr = parts[0];
+            dayStr = parts[1];
+            yearStr = parts[2].substring(0, 4);
+          } else {
+            // DD/MM/YYYY
+            dayStr = parts[0];
+            monthStr = parts[1];
+            yearStr = parts[2].substring(0, 4);
+          }
+        }
       }
 
       let key = item.date; // default Day
@@ -169,12 +210,52 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
         datasets,
       },
       modeTotals: modeTotalsRecord,
+      targetLabel: computedTargetLabel
     };
-  }, [data, aggregation, releaseName]);
+  }, [data, aggregation, releaseName, releaseDate]);
+
+  const plugins = useMemo(() => {
+    return [{
+      id: 'releaseLine',
+      afterDraw: (chart: any) => {
+        if (!targetLabel) return;
+        const xIndex = chart.data.labels.indexOf(targetLabel);
+        if (xIndex === -1) return;
+
+        const xAxis = chart.scales.x;
+        const yAxis = chart.scales.y;
+        
+        const xPixel = xAxis.getPixelForTick(xIndex);
+
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.fillStyle = '#6b7280'; // gray-500
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Release', xPixel, yAxis.top + 12);
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(xPixel, yAxis.top + 20);
+        ctx.lineTo(xPixel, yAxis.bottom);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#9ca3af'; // gray-400
+        ctx.stroke();
+        ctx.restore();
+      }
+    }];
+  }, [targetLabel]);
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 0
+      }
+    },
     plugins: {
       legend: {
         position: 'top' as const,
@@ -192,6 +273,7 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
       y: {
         stacked: true,
         beginAtZero: true,
+        grace: '15%'
       },
     },
   };
@@ -232,7 +314,7 @@ export const UsageChart: React.FC<UsageChartProps> = ({ releaseName }) => {
             No usage data available.
           </div>
         ) : (
-          <Bar data={chartData} options={options} />
+          <Bar data={chartData} options={options} plugins={plugins} />
         )}
       </div>
     </div>

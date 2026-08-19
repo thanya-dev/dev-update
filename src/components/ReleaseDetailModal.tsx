@@ -209,7 +209,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
             </div>
           ) : (
             <div className="flex-1 w-full h-full min-h-[500px] pb-6">
-              <UsageChart releaseName={release.name} />
+              <UsageChart releaseName={release.name} releaseDate={release.releaseDate} />
             </div>
           )}
         </div>
