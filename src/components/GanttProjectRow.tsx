@@ -178,9 +178,10 @@ export function GanttProjectRow({ release, timelineStartDate, dayWidth, onProjec
       {isExpanded && (
         <div className="bg-gray-50/80 border-t border-gray-100 pb-2 pt-1 shadow-inner">
           {/* Requirement Row */}
-          <div className="flex h-10 group">
-            <div className="flex-none w-[360px] flex items-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
-              <span className="text-xs text-gray-600 font-medium">Requirement</span>
+          <div className="flex h-12 group">
+            <div className="flex-none w-[360px] flex flex-col justify-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
+              <span className="text-xs text-gray-600 font-medium leading-tight">Requirement</span>
+              {release.reqOwner && <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{release.reqOwner}</span>}
             </div>
             <div className="flex-1 relative">
               <GanttPhaseBar
@@ -197,9 +198,10 @@ export function GanttProjectRow({ release, timelineStartDate, dayWidth, onProjec
           </div>
           
           {/* Design Row */}
-          <div className="flex h-10 group">
-            <div className="flex-none w-[360px] flex items-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
-              <span className="text-xs text-gray-600 font-medium">Design</span>
+          <div className="flex h-12 group">
+            <div className="flex-none w-[360px] flex flex-col justify-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
+              <span className="text-xs text-gray-600 font-medium leading-tight">Design</span>
+              {release.designOwner && <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{release.designOwner}</span>}
             </div>
             <div className="flex-1 relative">
               <GanttPhaseBar
@@ -216,9 +218,10 @@ export function GanttProjectRow({ release, timelineStartDate, dayWidth, onProjec
           </div>
 
           {/* Development Row */}
-          <div className="flex h-10 group">
-            <div className="flex-none w-[360px] flex items-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
-              <span className="text-xs text-gray-600 font-medium">Development</span>
+          <div className="flex h-12 group">
+            <div className="flex-none w-[360px] flex flex-col justify-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
+              <span className="text-xs text-gray-600 font-medium leading-tight">Development</span>
+              {release.devOwner && <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{release.devOwner}</span>}
             </div>
             <div className="flex-1 relative">
               <GanttPhaseBar
@@ -235,9 +238,10 @@ export function GanttProjectRow({ release, timelineStartDate, dayWidth, onProjec
           </div>
 
           {/* Test/UAT Row */}
-          <div className="flex h-10 group">
-            <div className="flex-none w-[360px] flex items-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
-              <span className="text-xs text-gray-600 font-medium">Test / UAT</span>
+          <div className="flex h-12 group">
+            <div className="flex-none w-[360px] flex flex-col justify-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4">
+              <span className="text-xs text-gray-600 font-medium leading-tight">Test / UAT</span>
+              {release.testUatOwner && <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{release.testUatOwner}</span>}
             </div>
             <div className="flex-1 relative">
               <GanttPhaseBar

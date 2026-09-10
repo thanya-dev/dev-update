@@ -86,7 +86,7 @@ export function GanttPhaseBar({
         <Tooltip.Trigger asChild>
           <div
             className={clsx(
-              "absolute top-[6px] h-6 rounded-md flex items-center px-2 text-[10px] font-medium cursor-pointer transition-transform hover:scale-[1.02] shadow-sm z-10 whitespace-nowrap",
+              "absolute top-1/2 -translate-y-1/2 h-8 rounded-md flex flex-col justify-center px-2 text-[10px] font-medium cursor-pointer transition-transform hover:scale-[1.02] shadow-sm z-10 whitespace-nowrap leading-tight",
               colorClass,
               missingEnd && "bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.1)_10px,rgba(255,255,255,0.1)_20px)] border border-current"
             )}
@@ -95,6 +95,7 @@ export function GanttPhaseBar({
             <span className="w-full text-white drop-shadow-sm">
               {name} {md ? `· ${!isNaN(Number(md)) ? Number(md).toFixed(2) : '0.00'} MD` : ''}
             </span>
+            {owner && <span className="text-[8.5px] text-white/90 drop-shadow-sm">{owner}</span>}
           </div>
         </Tooltip.Trigger>
         <Tooltip.Portal>
