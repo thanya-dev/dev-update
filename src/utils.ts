@@ -1,4 +1,4 @@
-import { format, parseISO, min, max, isValid, differenceInCalendarDays, startOfMonth, endOfMonth, isAfter } from 'date-fns';
+import { format, parseISO, min, max, isValid, startOfMonth, endOfMonth, isAfter } from 'date-fns';
 import type { ReleaseData, GroupedReleases } from './types';
 
 export function groupReleasesByMonth(releases: ReleaseData[]): GroupedReleases[] {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Calendar, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, ChevronDown, AlertTriangle } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid, format } from 'date-fns';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import clsx from 'clsx';

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { getGanttTimelineRange, sortGanttReleases, PUBLIC_HOLIDAYS_2026 } from '../utils';
 import { GanttTimelineHeader } from './GanttTimelineHeader';
 import { GanttProjectRow } from './GanttProjectRow';

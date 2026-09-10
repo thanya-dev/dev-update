@@ -1,5 +1,5 @@
-import React from 'react';
-import { eachMonthOfInterval, format, getDaysInMonth, differenceInCalendarDays, startOfMonth, endOfMonth, isToday } from 'date-fns';
+
+import { eachMonthOfInterval, format, getDaysInMonth, differenceInCalendarDays } from 'date-fns';
 import clsx from 'clsx';
 import { PUBLIC_HOLIDAYS_2026 } from '../utils';
 
