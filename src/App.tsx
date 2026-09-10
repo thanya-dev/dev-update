@@ -4,13 +4,16 @@ import type { ReleaseData } from './types';
 import { ReleaseCard } from './components/ReleaseCard';
 import { ReleaseDetailModal } from './components/ReleaseDetailModal';
 import { Filter, Calendar, FolderOutput } from 'lucide-react';
+import { GanttChart } from './components/GanttChart';
 
 function App() {
   const [data, setData] = useState<ReleaseData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [viewMode, setViewMode] = useState<'gantt' | 'release'>('gantt');
   const [selectedYear, setSelectedYear] = useState<string>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
 
   const [selectedRelease, setSelectedRelease] = useState<ReleaseData | null>(null);
 
@@ -32,16 +35,18 @@ function App() {
 
   const years = ['All', ...Array.from(new Set(data.map(r => r.releaseDate ? r.releaseDate.substring(0, 4) : '').filter(Boolean)))].sort().reverse();
   const types = ['All', 'Feature', 'Improvement', 'Bug Fix'];
+  const statuses = ['All', ...Array.from(new Set(data.map(r => r.status).filter(Boolean)))].sort();
 
   const filteredData = data.filter(r => {
     if (selectedYear !== 'All' && r.releaseDate && !r.releaseDate.startsWith(selectedYear)) return false;
     if (selectedType !== 'All' && r.type !== selectedType) return false;
+    if (selectedStatus !== 'All' && r.status !== selectedStatus) return false;
     const nowMonth = new Date().toISOString().substring(0, 7);
     const itemMonth = r.releaseDate ? r.releaseDate.substring(0, 7) : '';
     
-    // Only filter by 'Released' status if it's a past month.
-    // For current and future months, show them regardless of status.
-    if (itemMonth < nowMonth && r.status !== 'Released') return false;
+    // Only filter by 'Released' status if it's a past month and we are in Release view mode.
+    // Gantt chart needs to see delayed/overdue items to plot them on the timeline.
+    if (viewMode === 'release' && itemMonth < nowMonth && r.status !== 'Released') return false;
     
     return true;
   });
@@ -62,6 +67,21 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="flex bg-gray-200/50 p-1 rounded-lg">
+              <button
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'gantt' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-300 hover:text-white'}`}
+                onClick={() => setViewMode('gantt')}
+              >
+                Gantt Chart
+              </button>
+              <button
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'release' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-300 hover:text-white'}`}
+                onClick={() => setViewMode('release')}
+              >
+                Release
+              </button>
+            </div>
+
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Calendar className="h-4 w-4 text-gray-400" />
@@ -87,13 +107,34 @@ function App() {
                 {types.map(t => <option key={t} value={t}>{t === 'All' ? 'All Types' : t}</option>)}
               </select>
             </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
+              </div>
+              <select
+                className="pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                {statuses.map(s => <option key={s} value={s}>{s === 'All' ? 'All Status' : s}</option>)}
+              </select>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden flex flex-col">
-        {loading ? (
+        {viewMode === 'gantt' ? (
+          loading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+          ) : (
+            <GanttChart data={filteredData} onProjectClick={setSelectedRelease} />
+          )
+        ) : loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
           </div>
@@ -102,9 +143,9 @@ function App() {
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center max-w-md">
               <FolderOutput className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No releases found for the selected filters.</h3>
-              <p className="text-gray-500 text-sm">Try adjusting your year or type filter to see more results.</p>
+              <p className="text-gray-500 text-sm">Try adjusting your year, type, or status filter to see more results.</p>
               <button
-                onClick={() => { setSelectedYear('All'); setSelectedType('All'); }}
+                onClick={() => { setSelectedYear('All'); setSelectedType('All'); setSelectedStatus('All'); }}
                 className="mt-6 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100 transition-colors"
               >
                 Clear Filters
