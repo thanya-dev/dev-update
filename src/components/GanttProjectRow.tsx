@@ -120,7 +120,7 @@ export function GanttProjectRow({ release, timelineStartDate, dayWidth, onProjec
                 <Tooltip.Trigger asChild>
                   <div
                     className="absolute top-1/2 -translate-y-1/2 z-10 cursor-help"
-                    style={{ left: releaseOffsetDays * dayWidth }}
+                    style={{ left: releaseOffsetDays * dayWidth + (dayWidth / 2) }}
                   >
                     <div
                       className={clsx(
@@ -162,8 +162,8 @@ export function GanttProjectRow({ release, timelineStartDate, dayWidth, onProjec
             <div 
               className="absolute top-1/2 -translate-y-1/2 h-6 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(239,68,68,0.1)_10px,rgba(239,68,68,0.1)_20px)] border-y border-red-200 z-0 pointer-events-none rounded-r-md"
               style={{ 
-                left: releaseOffsetDays * dayWidth, 
-                width: Math.max(0, differenceInCalendarDays(parseISO(release.lastWorkDate), releaseDateObj)) * dayWidth 
+                left: releaseOffsetDays * dayWidth + (dayWidth / 2), 
+                width: Math.max(0, differenceInCalendarDays(parseISO(release.lastWorkDate), releaseDateObj) + 0.5) * dayWidth 
               }}
             >
               <div className="absolute -top-4 left-2 text-[10px] font-medium text-red-500 whitespace-nowrap flex items-center gap-1">
