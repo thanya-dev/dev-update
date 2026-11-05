@@ -1,0 +1,266 @@
+[
+ {
+  "id": 2,
+  "name": "Import Other Payment / Contract cost breakdown",
+  "devStart": "2025-12-08",
+  "devEnd": "2026-02-25",
+  "devMd": 25.37,
+  "totalMd": 37.04
+ },
+ {
+  "id": 3,
+  "name": "Influencer Package Management",
+  "devStart": "2026-01-06",
+  "devEnd": "2026-05-08",
+  "devMd": 32.16,
+  "totalMd": 33.05
+ },
+ {
+  "id": 4,
+  "name": "Quotation Expense Reallocation",
+  "devStart": "2026-01-19",
+  "devEnd": "2026-01-30",
+  "devMd": 9.29,
+  "totalMd": 14.66
+ },
+ {
+  "id": 5,
+  "name": "Expense Report Bug, Evidence for Lotus Report",
+  "devStart": "2026-01-19",
+  "devEnd": "2026-02-19",
+  "devMd": 3.9,
+  "totalMd": 4.7
+ },
+ {
+  "id": 6,
+  "name": "Search by Brief",
+  "devStart": "2026-01-09",
+  "devEnd": "2026-05-14",
+  "devMd": 46.84,
+  "totalMd": 95.62
+ },
+ {
+  "id": 7,
+  "name": "Submit social performance stats",
+  "devStart": "2026-02-19",
+  "devEnd": "2026-02-27",
+  "devMd": 4.94,
+  "totalMd": 7.56
+ },
+ {
+  "id": 8,
+  "name": "Year Plan Report",
+  "devStart": "2026-02-18",
+  "devEnd": "2026-04-20",
+  "devMd": 27.42,
+  "totalMd": 41.31
+ },
+ {
+  "id": 9,
+  "name": "Buddy Ranks",
+  "devStart": "2026-03-06",
+  "devEnd": "2026-03-26",
+  "devMd": 31.62,
+  "totalMd": 36.23
+ },
+ {
+  "id": 10,
+  "name": "Report, KOL website improvement",
+  "devStart": "2026-02-05",
+  "devEnd": "2026-02-05",
+  "devMd": 0.9,
+  "totalMd": 0.9
+ },
+ {
+  "id": 11,
+  "name": "Payment Calendar",
+  "devStart": "",
+  "devEnd": "",
+  "devMd": 0,
+  "totalMd": 0.8
+ },
+ {
+  "id": 12,
+  "name": "AI pillar, Year Plan Report improvement",
+  "devStart": "2026-01-22",
+  "devEnd": "2026-02-27",
+  "devMd": 3.3,
+  "totalMd": 10.5
+ },
+ {
+  "id": 13,
+  "name": "Convert Manual post / Manual account",
+  "devStart": "2026-04-20",
+  "devEnd": "2026-04-24",
+  "devMd": 5.8,
+  "totalMd": 6.7
+ },
+ {
+  "id": 14,
+  "name": "Payment Calendar",
+  "devStart": "2026-05-15",
+  "devEnd": "2026-05-18",
+  "devMd": 0.4,
+  "totalMd": 0.4
+ },
+ {
+  "id": 15,
+  "name": "Centralize Draft Submission",
+  "devStart": "2026-04-10",
+  "devEnd": "2026-05-28",
+  "devMd": 60.9,
+  "totalMd": 81.18
+ },
+ {
+  "id": 16,
+  "name": "QO validation, KOL search logic, Other data sync",
+  "devStart": "2026-05-06",
+  "devEnd": "2026-05-11",
+  "devMd": 3.6,
+  "totalMd": 4.2
+ },
+ {
+  "id": 17,
+  "name": "Fix incorrect timestamp field used when approving draft",
+  "devStart": "2026-05-13",
+  "devEnd": "2026-05-13",
+  "devMd": 0.5,
+  "totalMd": 0.7
+ },
+ {
+  "id": 18,
+  "name": "Fix bugs",
+  "devStart": "2026-03-12",
+  "devEnd": "2026-03-24",
+  "devMd": 0.4,
+  "totalMd": 1.4
+ },
+ {
+  "id": 19,
+  "name": "Buddy Rank Content Idea Co-pilot",
+  "devStart": "2026-05-19",
+  "devEnd": "2026-07-01",
+  "devMd": 39.91,
+  "totalMd": 104.19
+ },
+ {
+  "id": 20,
+  "name": "Fix IG API issues for profile connection and post submission",
+  "devStart": "2026-03-12",
+  "devEnd": "2026-06-10",
+  "devMd": 0.2,
+  "totalMd": 0.2
+ },
+ {
+  "id": 21,
+  "name": "Draft improvement",
+  "devStart": "",
+  "devEnd": "",
+  "devMd": 1,
+  "totalMd": 2
+ },
+ {
+  "id": 22,
+  "name": "Standard Brief",
+  "devStart": "2026-06-16",
+  "devEnd": "2026-08-17",
+  "devMd": 86.18,
+  "totalMd": 148.14
+ },
+ {
+  "id": 23,
+  "name": "Rate Card Brief",
+  "devStart": "2026-08-03",
+  "devEnd": "2026-08-14",
+  "devMd": 15.69,
+  "totalMd": 29.95
+ },
+ {
+  "id": 24,
+  "name": "Edit & Revise Brief \nUAT Feedback Improvement",
+  "devStart": "2026-09-28",
+  "devEnd": "2026-10-09",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 25,
+  "name": "Schedule update post data",
+  "devStart": "2026-04-20",
+  "devEnd": "2026-05-08",
+  "devMd": 14.9,
+  "totalMd": 16.44
+ },
+ {
+  "id": 26,
+  "name": "Draft Improvement #2",
+  "devStart": "2026-08-07",
+  "devEnd": "2026-08-07",
+  "devMd": 0.31,
+  "totalMd": 0.65
+ },
+ {
+  "id": 27,
+  "name": "New Payment Process",
+  "devStart": "2026-09-14",
+  "devEnd": "2026-09-23",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 28,
+  "name": "Standard Prelist Boardcast",
+  "devStart": "2026-10-12",
+  "devEnd": "2026-10-28",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 29,
+  "name": "Omni Channel: CF List",
+  "devStart": "2026-11-16",
+  "devEnd": "2026-12-18",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 30,
+  "name": "Payment Process Centralization",
+  "devStart": "2026-12-14",
+  "devEnd": "2027-01-15",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 31,
+  "name": "Content Idea Centralization",
+  "devStart": "2027-01-04",
+  "devEnd": "2027-01-15",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 32,
+  "name": "Influencer360: Level 1",
+  "devStart": "2026-10-27",
+  "devEnd": "2026-10-31",
+  "devMd": "",
+  "totalMd": ""
+ },
+ {
+  "id": 33,
+  "name": "Data",
+  "devStart": null,
+  "devEnd": null,
+  "devMd": null,
+  "totalMd": null
+ },
+ {
+  "id": 34,
+  "name": "Primemobility Website Revamp",
+  "devStart": "2026-09-14",
+  "devEnd": "2026-10-30",
+  "devMd": "",
+  "totalMd": ""
+ }
+]

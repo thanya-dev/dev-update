@@ -7,9 +7,11 @@ interface GanttTimelineHeaderProps {
   timelineStartDate: Date;
   timelineEndDate: Date;
   dayWidth: number;
+  leftColWidth: number;
+  onLeftColResize: (width: number) => void;
 }
 
-export function GanttTimelineHeader({ timelineStartDate, timelineEndDate, dayWidth }: GanttTimelineHeaderProps) {
+export function GanttTimelineHeader({ timelineStartDate, timelineEndDate, dayWidth, leftColWidth, onLeftColResize }: GanttTimelineHeaderProps) {
   const months = eachMonthOfInterval({
     start: timelineStartDate,
     end: timelineEndDate
@@ -22,8 +24,29 @@ export function GanttTimelineHeader({ timelineStartDate, timelineEndDate, dayWid
   return (
     <div className="flex border-b border-gray-200 bg-gray-50/95 backdrop-blur-md sticky top-0 z-30">
       {/* Left Panel Header Placeholder */}
-      <div className="flex-none w-[360px] border-r border-gray-200 sticky left-0 z-40 bg-gray-50 flex items-end pb-2 px-4 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
+      <div className="flex-none w-[var(--left-col)] border-r border-gray-200 sticky left-0 z-40 bg-gray-50 flex items-end pb-2 px-4 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Project / Release</div>
+        <div
+          title="Drag to resize · double-click to reset"
+          onPointerDown={e => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = leftColWidth;
+            const move = (ev: PointerEvent) => onLeftColResize(startW + ev.clientX - startX);
+            const up = () => {
+              window.removeEventListener('pointermove', move);
+              window.removeEventListener('pointerup', up);
+              document.body.style.cursor = '';
+            };
+            document.body.style.cursor = 'col-resize';
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+          }}
+          onDoubleClick={() => onLeftColResize(440)}
+          className="absolute -right-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 group/resize"
+        >
+          <div className="mx-auto h-full w-0.5 bg-transparent group-hover/resize:bg-blue-400 transition-colors" />
+        </div>
       </div>
 
       {/* Timeline Header */}

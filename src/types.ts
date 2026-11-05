@@ -24,14 +24,19 @@ export interface ReleaseData {
   testUatEnd: string;
   testUatMd: number;
   gallery?: string;
+  /** Manual display order from the "sortOrder" column; empty = after ordered rows, by id. */
+  sortOrder?: number | string;
+  /** Attached in the app from the "actionItems" tab — never sent to the manday tab. */
+  actionItems?: ActionItem[];
 }
 
-export interface GroupedReleases {
-  monthKey: string;
-  monthLabel: string;
-  year: number;
-  isPlan?: boolean;
-  releases: ReleaseData[];
+export interface ActionItem {
+  id: string;
+  text: string;
+  owner: string;
+  /** yyyy-MM-dd, may be empty */
+  due: string;
+  done: boolean;
 }
 
 export interface ProjectReport {

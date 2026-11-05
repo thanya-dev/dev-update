@@ -1,57 +1,229 @@
-import { useState, useEffect } from 'react';
-import { groupReleasesByMonth } from './utils';
-import type { ReleaseData } from './types';
-import { ReleaseCard } from './components/ReleaseCard';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import type { ActionItem, ReleaseData } from './types';
 import { ReleaseDetailModal } from './components/ReleaseDetailModal';
-import { Filter, Calendar, FolderOutput } from 'lucide-react';
 import { GanttChart } from './components/GanttChart';
+import { FeatureUsageView } from './components/FeatureUsageView';
+import { FilterBar } from './components/FilterBar';
+import { ProjectFormModal } from './components/ProjectFormModal';
+import {
+  fetchReleases, fetchStatusOptions, createRelease, updateRelease, deleteRelease, type StatusOption,
+  fetchActionItems, createActionItem, updateActionItem, deleteActionItem, type ActionItemRow,
+} from './api';
+import { applyFilters, getFilterOptions, DEFAULT_FILTERS, type FilterState } from './filters';
+import { countWorkingDays, deriveWorkSpan, withComputedDevMd, sortGanttReleases, STATUS_OPTIONS, type PhaseKey } from './utils';
+
+type Toast = { kind: 'saving' | 'ok' | 'error'; message: string } | null;
 
 function App() {
   const [data, setData] = useState<ReleaseData[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Rows of the "actionItems" tab. Items not yet saved have a negative temporary id. */
+  const hasSortColumn = useRef(false);
+  const [actionRows, setActionRows] = useState<ActionItemRow[]>([]);
 
-  const [viewMode, setViewMode] = useState<'gantt' | 'release'>('gantt');
-  const [selectedYear, setSelectedYear] = useState<string>('All');
-  const [selectedType, setSelectedType] = useState<string>('All');
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [viewMode, setViewMode] = useState<'gantt' | 'usage'>('gantt');
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  // Falls back to the built-in list until (or if) the projectStatus tab loads.
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>(
+    STATUS_OPTIONS.map(status => ({ status, description: '' }))
+  );
 
   const [selectedRelease, setSelectedRelease] = useState<ReleaseData | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  useEffect(() => {
-    const url = 'https://api.sheety.co/2190eabca081d57822fbb85c130c4908/18082026ProductMonitoring/manday';
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.manday) {
-          setData(json.manday);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+  const [toast, setToast] = useState<Toast>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
+  const showToast = useCallback((t: Toast) => {
+    window.clearTimeout(toastTimer.current);
+    setToast(t);
+    if (t?.kind === 'ok') toastTimer.current = window.setTimeout(() => setToast(null), 2500);
   }, []);
 
-  const years = ['All', ...Array.from(new Set(data.map(r => r.releaseDate ? r.releaseDate.substring(0, 4) : '').filter(Boolean)))].sort().reverse();
-  const types = ['All', 'Feature', 'Improvement', 'Bug Fix'];
-  const statuses = ['All', ...Array.from(new Set(data.map(r => r.status).filter(Boolean)))].sort();
+  const reload = useCallback(
+    () =>
+      fetchReleases()
+        .then(rows => {
+          hasSortColumn.current = rows.length > 0 && 'sortOrder' in rows[0];
+          setData(rows.map(withComputedDevMd));
+        })
+        .catch(err => {
+          console.error(err);
+          showToast({ kind: 'error', message: `Couldn't load data: ${err.message}` });
+        }),
+    [showToast]
+  );
 
-  const filteredData = data.filter(r => {
-    if (selectedYear !== 'All' && r.releaseDate && !r.releaseDate.startsWith(selectedYear)) return false;
-    if (selectedType !== 'All' && r.type !== selectedType) return false;
-    if (selectedStatus !== 'All' && r.status !== selectedStatus) return false;
-    const nowMonth = new Date().toISOString().substring(0, 7);
-    const itemMonth = r.releaseDate ? r.releaseDate.substring(0, 7) : '';
-    
-    // Only filter by 'Released' status if it's a past month and we are in Release view mode.
-    // Gantt chart needs to see delayed/overdue items to plot them on the timeline.
-    if (viewMode === 'release' && itemMonth < nowMonth && r.status !== 'Released') return false;
-    
-    return true;
-  });
+  const reloadActionItems = useCallback(
+    () =>
+      fetchActionItems()
+        .then(setActionRows)
+        .catch(err => {
+          console.error(err);
+          showToast({ kind: 'error', message: `Couldn't load action items (is the "actionItems" tab enabled in Sheety?) ${err.message}` });
+        }),
+    [showToast]
+  );
 
-  const groupedData = groupReleasesByMonth(filteredData);
+  useEffect(() => {
+    reload().finally(() => setLoading(false));
+    reloadActionItems();
+    fetchStatusOptions()
+      .then(list => list.length && setStatusOptions(list))
+      .catch(err => console.error('Could not load project statuses', err));
+  }, [reload, reloadActionItems]);
+
+  const options = useMemo(() => getFilterOptions(data, statusOptions.map(s => s.status)), [data, statusOptions]);
+  const dataWithItems = useMemo(() => {
+    const byProject = new Map<number, ActionItemRow[]>();
+    for (const a of actionRows) byProject.set(a.projectId, [...(byProject.get(a.projectId) ?? []), a]);
+    return data.map(r => {
+      const rows = (byProject.get(r.id) ?? []).sort((a, b) => a.order - b.order || a.id - b.id);
+      return { ...r, actionItems: rows.map(({ id, text, owner, due, done }) => ({ id: String(id), text, owner, due, done })) };
+    });
+  }, [data, actionRows]);
+  const filteredData = useMemo(() => applyFilters(dataWithItems, filters), [dataWithItems, filters]);
+
+  /** Optimistically applies `localPatch`, sends `remotePatch` to the Sheet, rolls back on failure. */
+  const saveRow = async (release: ReleaseData, remotePatch: Partial<ReleaseData>, localPatch = remotePatch) => {
+    const before = data.find(r => r.id === release.id);
+    setData(rows => rows.map(r => (r.id === release.id ? { ...r, ...localPatch } : r)));
+    showToast({ kind: 'saving', message: `Saving “${release.name}”…` });
+    try {
+      await updateRelease(release.id, remotePatch);
+      showToast({ kind: 'ok', message: 'Saved to Google Sheet' });
+    } catch (err) {
+      if (before) setData(rows => rows.map(r => (r.id === release.id ? before : r)));
+      showToast({ kind: 'error', message: `Save failed, change reverted. ${(err as Error).message}` });
+    }
+  };
+
+  const handlePhaseChange = (release: ReleaseData, phase: PhaseKey, start: string, end: string) => {
+    const patch = { [`${phase}Start`]: start, [`${phase}End`]: end } as Partial<ReleaseData>;
+    if (phase === 'dev') {
+      // Dev manday = working days in the dev range (no weekends / public holidays).
+      // totalMd is shifted by the same difference so any effort outside the 4 phases is kept.
+      const devMd = countWorkingDays(start, end);
+      patch.devMd = devMd;
+      patch.totalMd = Math.round(((Number(release.totalMd) || 0) - (Number(release.devMd) || 0) + devMd) * 100) / 100;
+      // (withComputedDevMd does the same on load, so the screen never shows a stale sheet value.)
+    }
+    // First/last work date may be formulas in the sheet, so we only refresh them locally.
+    const local = { ...patch, ...deriveWorkSpan({ ...release, ...patch }) };
+    saveRow(release, patch, local);
+  };
+
+  const handleStatusChange = (release: ReleaseData, status: string) => saveRow(release, { status });
+
+  const handleNameChange = (release: ReleaseData, name: string) => saveRow(release, { name });
+
+  /** Drag & drop: renumber sortOrder 1..n over ALL projects (not just the filtered ones) and save the changed rows. */
+  const handleReorder = async (dragId: number, targetId: number, place: 'before' | 'after') => {
+    const sorted = sortGanttReleases(data);
+    const moving = sorted.find(r => r.id === dragId);
+    if (!moving) return;
+    const rest = sorted.filter(r => r.id !== dragId);
+    const at = rest.findIndex(r => r.id === targetId);
+    if (at < 0) return;
+    rest.splice(place === 'before' ? at : at + 1, 0, moving);
+
+    const newOrder = new Map(rest.map((r, i) => [r.id, i + 1]));
+    const changed = rest.filter(r => Number(r.sortOrder) !== newOrder.get(r.id) || r.sortOrder === '');
+
+    setData(rows => rows.map(r => ({ ...r, sortOrder: newOrder.get(r.id) ?? r.sortOrder })));
+
+    // Sheety silently ignores fields it has no column for, so check before pretending it was saved.
+    if (!hasSortColumn.current) {
+      showToast({
+        kind: 'error',
+        message: 'Order changed on this screen only. Add a "sortOrder" column to the manday tab (and refresh Sheety) to save it.',
+      });
+      return;
+    }
+    showToast({ kind: 'saving', message: `Saving order (${changed.length} rows)…` });
+    try {
+      // A few requests at a time so Sheety isn't flooded.
+      for (let i = 0; i < changed.length; i += 4) {
+        await Promise.all(changed.slice(i, i + 4).map(r => updateRelease(r.id, { sortOrder: newOrder.get(r.id) })));
+      }
+      showToast({ kind: 'ok', message: 'Project order saved' });
+    } catch (err) {
+      showToast({ kind: 'error', message: `Couldn't save order, reloading. ${(err as Error).message}` });
+      await reload();
+    }
+  };
+
+  const handleReleaseDateChange = (release: ReleaseData, releaseDate: string) => saveRow(release, { releaseDate });
+
+  /**
+   * The panel hands back the project's whole new list; diff it against what we have and send
+   * only the adds / edits / deletes to the actionItems tab. Optimistic, reloads on failure.
+   */
+  const handleActionItemsChange = async (release: ReleaseData, next: ActionItem[]) => {
+    const prev = actionRows.filter(a => a.projectId === release.id);
+    const prevById = new Map(prev.map(a => [String(a.id), a]));
+    const nextIds = new Set(next.map(i => i.id));
+
+    const deleted = prev.filter(a => !nextIds.has(String(a.id)));
+    const added: { tempId: number; fields: Omit<ActionItemRow, 'id'> }[] = [];
+    const updated: { id: number; patch: Partial<ActionItemRow> }[] = [];
+    let tempId = Math.min(0, ...actionRows.map(a => a.id));
+
+    const optimistic: ActionItemRow[] = next.map((item, order) => {
+      const fields = { projectId: release.id, text: item.text, owner: item.owner, due: item.due, done: item.done, order };
+      const old = prevById.get(item.id);
+      if (!old) {
+        added.push({ tempId: --tempId, fields });
+        return { id: tempId, ...fields };
+      }
+      const patch: Partial<ActionItemRow> = {};
+      (['text', 'owner', 'due', 'done', 'order'] as const).forEach(k => {
+        if (old[k] !== fields[k]) Object.assign(patch, { [k]: fields[k] });
+      });
+      if (Object.keys(patch).length) updated.push({ id: old.id, patch });
+      return { ...old, ...fields };
+    });
+
+    setActionRows(rows => [...rows.filter(a => a.projectId !== release.id), ...optimistic]);
+    showToast({ kind: 'saving', message: 'Saving action items…' });
+    try {
+      for (const u of updated) if (u.id > 0) await updateActionItem(u.id, u.patch);
+      for (const a of added) {
+        const created = await createActionItem(a.fields);
+        setActionRows(rows => rows.map(r => (r.id === a.tempId ? created : r)));
+      }
+      // Bottom-up so earlier deletes don't shift the row ids of later ones.
+      for (const d of [...deleted].sort((a, b) => b.id - a.id)) if (d.id > 0) await deleteActionItem(d.id);
+      if (deleted.length) await reloadActionItems();
+      showToast({ kind: 'ok', message: 'Saved to Google Sheet' });
+    } catch (err) {
+      showToast({ kind: 'error', message: `Action item save failed. ${(err as Error).message}` });
+      await reloadActionItems();
+    }
+  };
+
+  const handleDelete = async (release: ReleaseData) => {
+    if (!window.confirm(`Delete “${release.name}” from the Google Sheet?\nThis removes the row and can't be undone here.`)) return;
+    showToast({ kind: 'saving', message: `Deleting “${release.name}”…` });
+    try {
+      await deleteRelease(release.id);
+      // Sheety ids are row numbers, so project rows after the deleted one shift up by one.
+      // Drop this project's action items and re-point the ones that belong to later projects.
+      const own = actionRows.filter(a => a.projectId === release.id).sort((a, b) => b.id - a.id);
+      for (const a of own) await deleteActionItem(a.id);
+      for (const a of actionRows) if (a.projectId > release.id) await updateActionItem(a.id, { projectId: a.projectId - 1 });
+      await Promise.all([reload(), reloadActionItems()]);
+      showToast({ kind: 'ok', message: 'Project deleted' });
+    } catch (err) {
+      showToast({ kind: 'error', message: `Delete failed. ${(err as Error).message}` });
+    }
+  };
+
+  const handleCreate = async (row: Omit<ReleaseData, 'id'>) => {
+    const created = await createRelease(row);
+    setData(rows => [...rows, { ...row, ...created }]);
+    showToast({ kind: 'ok', message: `Added “${row.name}”` });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
@@ -66,148 +238,84 @@ function App() {
             <p className="text-xs text-gray-300 mt-0.5">Monthly release cadence and delivery effort.</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex bg-gray-200/50 p-1 rounded-lg">
-              <button
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'gantt' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-300 hover:text-white'}`}
-                onClick={() => setViewMode('gantt')}
-              >
-                Gantt Chart
-              </button>
-              <button
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'release' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-300 hover:text-white'}`}
-                onClick={() => setViewMode('release')}
-              >
-                Release
-              </button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="h-4 w-4 text-gray-400" />
-              </div>
-              <select
-                className="pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                {years.map(y => <option key={y} value={y}>{y === 'All' ? 'All Years' : y}</option>)}
-              </select>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-4 w-4 text-gray-400" />
-              </div>
-              <select
-                className="pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-              >
-                {types.map(t => <option key={t} value={t}>{t === 'All' ? 'All Types' : t}</option>)}
-              </select>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-4 w-4 text-gray-400" />
-              </div>
-              <select
-                className="pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 bg-gray-50 hover:bg-gray-100 transition-colors appearance-none"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-              >
-                {statuses.map(s => <option key={s} value={s}>{s === 'All' ? 'All Status' : s}</option>)}
-              </select>
-            </div>
+          <div className="flex bg-gray-200/50 p-1 rounded-lg">
+            <button
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'gantt' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-300 hover:text-white'}`}
+              onClick={() => setViewMode('gantt')}
+            >
+              Gantt Chart
+            </button>
+            <button
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'usage' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-300 hover:text-white'}`}
+              onClick={() => setViewMode('usage')}
+            >
+              Usage
+            </button>
           </div>
         </div>
       </header>
 
+      {viewMode === 'gantt' && (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          options={options}
+          shownCount={filteredData.length}
+          totalCount={data.length}
+          onAddProject={() => setShowAddForm(true)}
+        />
+      )}
+
       {/* Main Content */}
       <main className="flex-1 overflow-hidden flex flex-col">
-        {viewMode === 'gantt' ? (
-          loading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            </div>
-          ) : (
-            <GanttChart data={filteredData} onProjectClick={setSelectedRelease} />
-          )
+        {viewMode === 'usage' ? (
+          <FeatureUsageView />
         ) : loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
           </div>
-        ) : groupedData.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center max-w-md">
-              <FolderOutput className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No releases found for the selected filters.</h3>
-              <p className="text-gray-500 text-sm">Try adjusting your year, type, or status filter to see more results.</p>
-              <button
-                onClick={() => { setSelectedYear('All'); setSelectedType('All'); setSelectedStatus('All'); }}
-                className="mt-6 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100 transition-colors"
-              >
-                Clear Filters
-              </button>
-            </div>
-          </div>
         ) : (
-          <div className="flex-1 overflow-x-auto overflow-y-auto snap-x snap-mandatory hide-scrollbar scroll-pl-8">
-            <div className="w-max min-h-full px-16 lg:px-24 pb-8">
-              
-              {/* Sticky Header Row */}
-              <div className="sticky top-0 z-20 flex gap-8 pt-8 pb-4 mb-6 bg-gray-50/95 backdrop-blur-md border-b border-gray-200">
-                {groupedData.map((group) => (
-                  <div key={group.monthKey} className="w-[340px] flex-shrink-0 snap-start">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold text-gray-900">{group.monthLabel}</h2>
-                      {group.isPlan && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
-                          Plan
-                        </span>
-                      )}
-                    </div>
-                    <span className="inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100 text-primary-800">
-                      {group.releases.length} Release{group.releases.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Cards Row */}
-              <div className="flex gap-8">
-                {groupedData.map((group) => (
-                  <div key={group.monthKey} className="w-[340px] flex-shrink-0">
-                    <div className="relative h-full">
-                      {/* Vertical Connector Line */}
-                      <div className="absolute left-[-1px] top-0 bottom-0 w-0.5 bg-gray-200"></div>
-
-                      <div className="space-y-6">
-                        {group.releases.map((release) => (
-                          <ReleaseCard
-                            key={release.id}
-                            release={release}
-                            onClick={setSelectedRelease}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-            </div>
-          </div>
+          <GanttChart
+            data={filteredData}
+            onProjectClick={setSelectedRelease}
+            onPhaseChange={handlePhaseChange}
+            onReleaseDateChange={handleReleaseDateChange}
+            onDelete={handleDelete}
+            statusOptions={statusOptions}
+            onStatusChange={handleStatusChange}
+            onNameChange={handleNameChange}
+            onReorder={handleReorder}
+            onActionItemsChange={handleActionItemsChange}
+            ownerSuggestions={options.owners}
+          />
         )}
       </main>
 
-      {/* Modal */}
+      {/* Modals */}
       {selectedRelease && (
-        <ReleaseDetailModal
-          release={selectedRelease}
-          onClose={() => setSelectedRelease(null)}
-        />
+        <ReleaseDetailModal release={selectedRelease} onClose={() => setSelectedRelease(null)} />
+      )}
+      {showAddForm && (
+        <ProjectFormModal ownerSuggestions={options.owners} statusOptions={statusOptions} onSubmit={handleCreate} onClose={() => setShowAddForm(false)} />
+      )}
+
+      {/* Save status */}
+      {toast && (
+        <div
+          className={`fixed bottom-5 right-5 z-[60] flex items-start gap-2 max-w-sm px-4 py-2.5 rounded-lg shadow-lg text-sm ${
+            toast.kind === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+          }`}
+        >
+          {toast.kind === 'saving' && <Loader2 className="w-4 h-4 mt-0.5 animate-spin flex-none" />}
+          {toast.kind === 'ok' && <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-400 flex-none" />}
+          {toast.kind === 'error' && <AlertCircle className="w-4 h-4 mt-0.5 flex-none" />}
+          <span>{toast.message}</span>
+          {toast.kind === 'error' && (
+            <button onClick={() => setToast(null)} className="ml-1 opacity-80 hover:opacity-100">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

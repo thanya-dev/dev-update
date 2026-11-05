@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, User, Clock, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReleaseData } from '../types';
-import { formatMD } from '../utils';
+import { formatMD, toImageUrl } from '../utils';
 import { format, parseISO } from 'date-fns';
 import {
   Chart as ChartJS,
@@ -33,7 +33,7 @@ interface Props {
 }
 
 export const ReleaseDetailModal: React.FC<Props> = ({ release, onClose }) => {
-  const images = release.gallery ? release.gallery.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const images = release.gallery ? release.gallery.split(',').map(s => s.trim()).filter(Boolean).map(toImageUrl) : [];
   const hasGallery = images.length > 0;
   const [activeTab, setActiveTab] = useState<'details' | 'usage' | 'gallery'>(hasGallery ? 'gallery' : 'details');
   const [selectedImageIdx, setSelectedImageIdx] = useState<number | null>(null);
