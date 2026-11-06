@@ -20,6 +20,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   /** Rows of the "actionItems" tab. Items not yet saved have a negative temporary id. */
   const hasSortColumn = useRef(false);
+  const hasPhaseColumnRef = useRef(true);
   const [actionRows, setActionRows] = useState<ActionItemRow[]>([]);
 
   const [viewMode, setViewMode] = useState<'gantt' | 'usage'>('gantt');
@@ -57,7 +58,10 @@ function App() {
   const reloadActionItems = useCallback(
     () =>
       fetchActionItems()
-        .then(setActionRows)
+        .then(({ rows, hasPhaseColumn }) => {
+          hasPhaseColumnRef.current = hasPhaseColumn;
+          setActionRows(rows);
+        })
         .catch(err => {
           console.error(err);
           showToast({ kind: 'error', message: `Couldn't load action items (is the "actionItems" tab enabled in Sheety?) ${err.message}` });
@@ -79,7 +83,7 @@ function App() {
     for (const a of actionRows) byProject.set(a.projectId, [...(byProject.get(a.projectId) ?? []), a]);
     return data.map(r => {
       const rows = (byProject.get(r.id) ?? []).sort((a, b) => a.order - b.order || a.id - b.id);
-      return { ...r, actionItems: rows.map(({ id, text, owner, due, done }) => ({ id: String(id), text, owner, due, done })) };
+      return { ...r, actionItems: rows.map(({ id, text, owner, due, done, phase }) => ({ id: String(id), text, owner, due, done, phase })) };
     });
   }, [data, actionRows]);
   const filteredData = useMemo(() => applyFilters(dataWithItems, filters), [dataWithItems, filters]);
@@ -170,14 +174,14 @@ function App() {
     let tempId = Math.min(0, ...actionRows.map(a => a.id));
 
     const optimistic: ActionItemRow[] = next.map((item, order) => {
-      const fields = { projectId: release.id, text: item.text, owner: item.owner, due: item.due, done: item.done, order };
+      const fields = { projectId: release.id, text: item.text, owner: item.owner, due: item.due, done: item.done, order, phase: item.phase ?? '' };
       const old = prevById.get(item.id);
       if (!old) {
         added.push({ tempId: --tempId, fields });
         return { id: tempId, ...fields };
       }
       const patch: Partial<ActionItemRow> = {};
-      (['text', 'owner', 'due', 'done', 'order'] as const).forEach(k => {
+      (['text', 'owner', 'due', 'done', 'order', 'phase'] as const).forEach(k => {
         if (old[k] !== fields[k]) Object.assign(patch, { [k]: fields[k] });
       });
       if (Object.keys(patch).length) updated.push({ id: old.id, patch });
@@ -195,6 +199,10 @@ function App() {
       // Bottom-up so earlier deletes don't shift the row ids of later ones.
       for (const d of [...deleted].sort((a, b) => b.id - a.id)) if (d.id > 0) await deleteActionItem(d.id);
       if (deleted.length) await reloadActionItems();
+      if (!hasPhaseColumnRef.current && next.some(i => i.phase)) {
+        showToast({ kind: 'error', message: 'Saved, but the phase was not: add a "phase" column to the actionItems tab (and refresh Sheety).' });
+        return;
+      }
       showToast({ kind: 'ok', message: 'Saved to Google Sheet' });
     } catch (err) {
       showToast({ kind: 'error', message: `Action item save failed. ${(err as Error).message}` });

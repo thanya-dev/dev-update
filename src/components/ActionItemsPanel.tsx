@@ -3,7 +3,7 @@ import { Plus, Trash2, Check, GripVertical, User, CalendarDays } from 'lucide-re
 import { format, parseISO, isValid, startOfDay } from 'date-fns';
 import clsx from 'clsx';
 import type { ActionItem } from '../types';
-import { newActionItemId } from '../utils';
+import { newActionItemId, PHASES } from '../utils';
 
 interface Props {
   items: ActionItem[];
@@ -12,6 +12,17 @@ interface Props {
   onChange?: (items: ActionItem[]) => void;
   /** Content for the timeline side of an item's row (e.g. its due-date marker). */
   renderTimeline?: (item: ActionItem) => ReactNode;
+  /** Section heading; null hides the heading row (used under a phase row). */
+  title?: string | null;
+  /** Phase given to items added here ('' = not tied to a phase). */
+  defaultPhase?: string;
+  /** Show the "+ Add action item" button (the form can still be opened via `adding`). */
+  showAddButton?: boolean;
+  /** Controlled add-form state, e.g. opened from a "+" on the phase row. */
+  adding?: boolean;
+  onAddingChange?: (adding: boolean) => void;
+  /** Left padding of item rows. */
+  indentClass?: string;
 }
 
 /** Left side of every row: pinned and exactly as wide as the "Project / Release" column. */
@@ -28,8 +39,21 @@ function isLate(item: ActionItem) {
   return isValid(d) && d < startOfDay(new Date());
 }
 
-export function ActionItemsPanel({ items, ownerSuggestions = [], onChange, renderTimeline }: Props) {
-  const [adding, setAdding] = useState(false);
+export function ActionItemsPanel({
+  items,
+  ownerSuggestions = [],
+  onChange,
+  renderTimeline,
+  title = 'Action items',
+  defaultPhase = '',
+  showAddButton = true,
+  adding: addingProp,
+  onAddingChange,
+  indentClass = 'pl-8',
+}: Props) {
+  const [addingState, setAddingState] = useState(false);
+  const adding = addingProp ?? addingState;
+  const setAdding = (v: boolean) => (onAddingChange ? onAddingChange(v) : setAddingState(v));
   const [editingId, setEditingId] = useState<string | null>(null);
   // Drag only starts from the grip handle, so clicks on the row still open the editor.
   const [armedId, setArmedId] = useState<string | null>(null);
@@ -66,25 +90,27 @@ export function ActionItemsPanel({ items, ownerSuggestions = [], onChange, rende
   };
 
   return (
-    <div className="border-t border-gray-200">
-      <div className="flex">
-        <div className={clsx(LEFT, 'flex items-center gap-2 pl-10 pr-4 pt-2.5 pb-1')}>
-          <span className="text-xs font-semibold text-gray-700">Action items</span>
-          {items.length > 0 && (
-            <span className="text-[11px] text-gray-400">
-              {openCount} open · {items.length - openCount} done
-            </span>
-          )}
+    <div className={clsx(title !== null && 'border-t border-gray-200')}>
+      {title !== null && (
+        <div className="flex">
+          <div className={clsx(LEFT, 'flex items-center gap-2 pl-10 pr-4 pt-2.5 pb-1')}>
+            <span className="text-xs font-semibold text-gray-700">{title}</span>
+            {items.length > 0 && (
+              <span className="text-[11px] text-gray-400">
+                {openCount} open · {items.length - openCount} done
+              </span>
+            )}
+          </div>
+          <div className="flex-1" />
         </div>
-        <div className="flex-1" />
-      </div>
+      )}
 
       {items.length > 0 && (
         <ul>
           {items.map((item, index) =>
             editingId === item.id && onChange ? (
               <li key={item.id} className="flex">
-                <div className={clsx(LEFT, 'pl-8 pr-3 py-1')}>
+                <div className={clsx(LEFT, indentClass, 'pr-3 py-1')}>
                   <ItemForm
                     initial={item}
                     submitLabel="Save"
@@ -127,7 +153,7 @@ export function ActionItemsPanel({ items, ownerSuggestions = [], onChange, rende
               >
                 <div
                   onClick={() => onChange && !dragId && (setAdding(false), setEditingId(item.id))}
-                  className={clsx(LEFT, 'flex items-center gap-2 pl-8 pr-3', onChange && 'cursor-pointer group-hover/item:bg-white')}
+                  className={clsx(LEFT, indentClass, 'flex items-center gap-2 pr-3', onChange && 'cursor-pointer group-hover/item:bg-white')}
                 >
                   {onChange && (
                     <span
@@ -206,13 +232,14 @@ export function ActionItemsPanel({ items, ownerSuggestions = [], onChange, rende
         </ul>
       )}
 
-      {onChange && (
+      {onChange && (adding || showAddButton) && (
         <div className="flex">
-          <div className={clsx(LEFT, 'pl-8 pr-3 pt-1 pb-2.5')}>
+          <div className={clsx(LEFT, indentClass, 'pr-3 pt-1 pb-2.5')}>
             {adding ? (
               <ItemForm
                 submitLabel="Add"
                 keepOpenAfterSubmit
+                initial={{ text: '', owner: '', due: '', phase: defaultPhase }}
                 onSubmit={v => onChange([...items, { id: newActionItemId(), done: false, ...v }])}
                 onCancel={() => setAdding(false)}
               />
@@ -240,7 +267,7 @@ export function ActionItemsPanel({ items, ownerSuggestions = [], onChange, rende
   );
 }
 
-type ItemValues = Pick<ActionItem, 'text' | 'owner' | 'due'>;
+type ItemValues = Pick<ActionItem, 'text' | 'owner' | 'due' | 'phase'>;
 
 interface ItemFormProps {
   initial?: ItemValues;
@@ -256,6 +283,7 @@ function ItemForm({ initial, submitLabel, keepOpenAfterSubmit, onSubmit, onCance
   const [text, setText] = useState(initial?.text ?? '');
   const [owner, setOwner] = useState(initial?.owner ?? '');
   const [due, setDue] = useState(initial?.due ?? '');
+  const [phase, setPhase] = useState(initial?.phase ?? '');
   const [focusKey, setFocusKey] = useState(0);
 
   return (
@@ -266,7 +294,7 @@ function ItemForm({ initial, submitLabel, keepOpenAfterSubmit, onSubmit, onCance
         e.preventDefault();
         const t = text.trim();
         if (!t) return;
-        onSubmit({ text: t, owner: owner.trim(), due });
+        onSubmit({ text: t, owner: owner.trim(), due, phase });
         if (keepOpenAfterSubmit) {
           setText('');
           setDue('');
@@ -294,6 +322,14 @@ function ItemForm({ initial, submitLabel, keepOpenAfterSubmit, onSubmit, onCance
           />
         </div>
         <input type="date" className={clsx(inputCls, 'w-32 text-gray-600')} value={due} onChange={e => setDue(e.target.value)} />
+        <select className={clsx(inputCls, 'w-32 text-gray-600')} value={phase} onChange={e => setPhase(e.target.value)} title="Phase">
+          <option value="">No phase</option>
+          {PHASES.map(p => (
+            <option key={p.key} value={p.key}>
+              {p.label}
+            </option>
+          ))}
+        </select>
 
         <div className="ml-auto flex items-center gap-1.5">
           {onDelete && (

@@ -37,6 +37,8 @@ export interface ActionItem {
   /** yyyy-MM-dd, may be empty */
   due: string;
   done: boolean;
+  /** PhaseKey ('req' | 'design' | 'dev' | 'testUat') or '' for items not tied to a phase. */
+  phase?: string;
 }
 
 export interface ProjectReport {

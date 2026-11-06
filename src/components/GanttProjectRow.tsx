@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, AlertTriangle, Trash2, ListTodo, Flag, Eraser, Pencil, GripVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, AlertTriangle, Trash2, ListTodo, Flag, Eraser, Pencil, GripVertical, Plus } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid, format, addDays } from 'date-fns';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import clsx from 'clsx';
@@ -75,10 +75,29 @@ export function GanttProjectRow({
 }: GanttProjectRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  /** Phase whose "add action item" form is open ('' = the "Other" section). */
+  const [addingPhase, setAddingPhase] = useState<string | null>(null);
   /** Right-click on the main timeline row: `day` is the date under the cursor. */
   const [releaseMenu, setReleaseMenu] = useState<{ x: number; y: number; day: string } | null>(null);
   const actionItems = release.actionItems ?? [];
   const openActions = actionItems.filter(a => !a.done).length;
+  const phaseKeys: string[] = PHASES.map(p => p.key);
+  const otherItems = actionItems.filter(a => !a.phase || !phaseKeys.includes(a.phase));
+
+  /**
+   * Each phase (and "Other") edits only its own slice; merge it back into the project's full list,
+   * kept in phase order so moving an item between phases appends it to the target phase.
+   */
+  const savePanel = (slice: ActionItem[]) => (next: ActionItem[]) => {
+    const sliceIds = new Set(slice.map(i => i.id));
+    const all = [...actionItems.filter(i => !sliceIds.has(i.id)), ...next];
+    const group = (i: ActionItem) => (i.phase && phaseKeys.includes(i.phase) ? i.phase : '');
+    const ordered = [...phaseKeys, ''].flatMap(g => all.filter(i => group(i) === g));
+    onActionItemsChange?.(release, ordered);
+  };
+
+  const renderItemMarker = (item: ActionItem) =>
+    item.due ? <ActionItemMarker due={item.due} items={[item]} timelineStartDate={timelineStartDate} dayWidth={dayWidth} /> : null;
 
   const statusColor = statusColors[release.status] || 'bg-gray-100 text-gray-800 border-gray-200';
   const { hasPostReleaseWork } = checkDateConflicts(release);
@@ -392,47 +411,89 @@ export function GanttProjectRow({
             const phaseEnd = release[`${phase.key}End`];
             const hasDates = !!(phaseStart || phaseEnd);
             const canCreate = !!onPhaseChange && !hasDates;
+            const phaseItems = actionItems.filter(a => a.phase === phase.key);
+            const phaseOpen = phaseItems.filter(a => !a.done).length;
             return (
-              <div key={phase.key} className="flex h-12 group">
-                <div className="flex-none w-[var(--left-col)] flex flex-col justify-center border-r border-gray-200 bg-gray-50/80 sticky left-0 z-20 pl-10 pr-4 !bg-gray-50">
-                  <span className="text-xs text-gray-600 font-medium leading-tight">{phase.label}</span>
-                  {owner && <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{owner}</span>}
+              <div key={phase.key}>
+                <div className="flex h-12 group/phase">
+                  <div className="flex-none w-[var(--left-col)] flex items-center gap-2 border-r border-gray-200 sticky left-0 z-20 pl-10 pr-3 bg-gray-50">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="text-xs text-gray-600 font-medium leading-tight flex items-center gap-1.5">
+                        {phase.label}
+                        {phaseItems.length > 0 && (
+                          <span
+                            className={clsx(
+                              'px-1.5 rounded-full text-[10px] font-semibold',
+                              phaseOpen ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'
+                            )}
+                            title={`${phaseOpen} open of ${phaseItems.length} action items`}
+                          >
+                            {phaseOpen ? phaseOpen : '✓'}
+                          </span>
+                        )}
+                      </span>
+                      {owner && <span className="text-[10px] text-gray-400 mt-0.5 leading-tight truncate">{owner}</span>}
+                    </div>
+                    {onActionItemsChange && (
+                      <button
+                        type="button"
+                        onClick={() => setAddingPhase(phase.key)}
+                        title={`Add action item to ${phase.label}`}
+                        className="flex-none flex items-center gap-0.5 px-1.5 py-1 rounded-md text-[11px] font-medium text-blue-600 opacity-0 group-hover/phase:opacity-100 hover:bg-blue-50 transition-opacity"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Action
+                      </button>
+                    )}
+                  </div>
+                  <div
+                    className={clsx("flex-1 relative", canCreate && "cursor-copy hover:bg-gray-100/70")}
+                    title={canCreate ? `Click to add ${phase.label} dates` : undefined}
+                    onClick={canCreate ? (e) => {
+                      // Drop a 5-day bar starting on the clicked day
+                      const x = e.clientX - e.currentTarget.getBoundingClientRect().left;
+                      const day = addDays(timelineStartDate, Math.floor(x / dayWidth));
+                      onPhaseChange!(release, phase.key, toISODate(day), toISODate(addDays(day, 4)));
+                    } : undefined}
+                  >
+                    <GanttPhaseBar
+                      name={phase.label}
+                      startDate={phaseStart}
+                      endDate={phaseEnd}
+                      owner={owner}
+                      md={release[`${phase.key}Md`]}
+                      timelineStartDate={timelineStartDate}
+                      dayWidth={dayWidth}
+                      colorClass={phase.colorClass}
+                      onChange={onPhaseChange ? (start, end) => onPhaseChange(release, phase.key, start, end) : undefined}
+                      onClear={onPhaseChange ? () => onPhaseChange(release, phase.key, '', '') : undefined}
+                    />
+                  </div>
                 </div>
-                <div
-                  className={clsx("flex-1 relative", canCreate && "cursor-copy hover:bg-gray-100/70")}
-                  title={canCreate ? `Click to add ${phase.label} dates` : undefined}
-                  onClick={canCreate ? (e) => {
-                    // Drop a 5-day bar starting on the clicked day
-                    const x = e.clientX - e.currentTarget.getBoundingClientRect().left;
-                    const day = addDays(timelineStartDate, Math.floor(x / dayWidth));
-                    onPhaseChange!(release, phase.key, toISODate(day), toISODate(addDays(day, 4)));
-                  } : undefined}
-                >
-                  <GanttPhaseBar
-                    name={phase.label}
-                    startDate={phaseStart}
-                    endDate={phaseEnd}
-                    owner={owner}
-                    md={release[`${phase.key}Md`]}
-                    timelineStartDate={timelineStartDate}
-                    dayWidth={dayWidth}
-                    colorClass={phase.colorClass}
-                    onChange={onPhaseChange ? (start, end) => onPhaseChange(release, phase.key, start, end) : undefined}
-                    onClear={onPhaseChange ? () => onPhaseChange(release, phase.key, '', '') : undefined}
+                {(phaseItems.length > 0 || addingPhase === phase.key) && (
+                  <ActionItemsPanel
+                    title={null}
+                    indentClass="pl-14"
+                    items={phaseItems}
+                    defaultPhase={phase.key}
+                    showAddButton={false}
+                    adding={addingPhase === phase.key}
+                    onAddingChange={v => setAddingPhase(v ? phase.key : null)}
+                    ownerSuggestions={ownerSuggestions}
+                    onChange={onActionItemsChange ? savePanel(phaseItems) : undefined}
+                    renderTimeline={renderItemMarker}
                   />
-                </div>
+                )}
               </div>
             );
           })}
           <ActionItemsPanel
-            items={actionItems}
+            title={actionItems.length > otherItems.length ? 'Other action items' : 'Action items'}
+            items={otherItems}
+            adding={addingPhase === ''}
+            onAddingChange={v => setAddingPhase(v ? '' : null)}
             ownerSuggestions={ownerSuggestions}
-            onChange={onActionItemsChange ? items => onActionItemsChange(release, items) : undefined}
-            renderTimeline={item =>
-              item.due ? (
-                <ActionItemMarker due={item.due} items={[item]} timelineStartDate={timelineStartDate} dayWidth={dayWidth} />
-              ) : null
-            }
+            onChange={onActionItemsChange ? savePanel(otherItems) : undefined}
+            renderTimeline={renderItemMarker}
           />
         </div>
       )}

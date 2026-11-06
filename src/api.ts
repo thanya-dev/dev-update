@@ -66,7 +66,7 @@ export async function fetchStatusOptions(): Promise<StatusOption[]> {
 }
 
 // --- Action items: one row per item in the "actionItems" tab ---
-// Columns: projectId | text | owner | due | done | order
+// Columns: projectId | text | owner | due | done | order | phase
 // projectId is the manday row id (Sheety id); App keeps it in sync when a project row is deleted.
 
 // Note: Sheety wants the request body under `actionitem` (lowercase) but replies with `actionItem`.
@@ -80,6 +80,7 @@ export interface ActionItemRow {
   due: string;
   done: boolean;
   order: number;
+  phase: string;
 }
 
 type ActionItemFields = Omit<ActionItemRow, 'id'>;
@@ -104,14 +105,18 @@ function toActionItemRow(r: Record<string, unknown>): ActionItemRow {
     due: toIsoDate(r.due),
     done: r.done === true || String(r.done).toUpperCase() === 'TRUE',
     order: Number(r.order) || 0,
+    phase: String(r.phase ?? '').trim(),
   };
 }
 
-export async function fetchActionItems(): Promise<ActionItemRow[]> {
+/** `hasPhaseColumn` is false when the tab has rows but no "phase" header (Sheety then drops that field silently). */
+export async function fetchActionItems(): Promise<{ rows: ActionItemRow[]; hasPhaseColumn: boolean }> {
   const json = await handle(await fetch(ACTION_URL, { headers: headers() }));
-  return ((json.actionItems ?? []) as Record<string, unknown>[])
-    .map(toActionItemRow)
-    .filter(r => r.projectId && r.text.trim());
+  const raw = (json.actionItems ?? []) as Record<string, unknown>[];
+  return {
+    rows: raw.map(toActionItemRow).filter(r => r.projectId && r.text.trim()),
+    hasPhaseColumn: !raw.length || 'phase' in raw[0],
+  };
 }
 
 export async function createActionItem(fields: ActionItemFields): Promise<ActionItemRow> {
